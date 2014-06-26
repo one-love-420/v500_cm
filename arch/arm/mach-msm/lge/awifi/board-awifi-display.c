@@ -1624,15 +1624,15 @@ struct i2c_registry {
 #endif
 
 struct backlight_platform_data {
-   void (*platform_init)(void);
-   int gpio;
-   unsigned int mode;
-   int max_current;
-   int init_on_boot;
-   int min_brightness;
-   int max_brightness;
-   int default_brightness;
-   int factory_brightness;
+	void (*platform_init)(void);
+	int gpio;
+	unsigned int mode;
+	int max_current;
+	int init_on_boot;
+	int min_brightness;
+	int max_brightness;
+	int default_brightness;
+	int factory_brightness;
 };
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
@@ -1839,7 +1839,17 @@ void __init register_i2c_backlight_devices(void)
 	int i;
 
 	/* Build the matching 'supported_machs' bitmask */
-	if (machine_is_apq8064_awifi())
+	if (machine_is_apq8064_cdp())
+		mach_mask = I2C_SURF;
+	else if (machine_is_apq8064_mtp())
+		mach_mask = I2C_FFA;	
+	else if (machine_is_apq8064_liquid())
+		mach_mask = I2C_LIQUID;
+	else if (machine_is_apq8064_rumi3())
+		mach_mask = I2C_RUMI;
+	else if (machine_is_apq8064_sim())
+		mach_mask = I2C_SIM;
+	else if (machine_is_apq8064_awifi())
 		mach_mask = I2C_FFA;
 	else
 		pr_err("unmatched machine ID in register_i2c_devices\n");
