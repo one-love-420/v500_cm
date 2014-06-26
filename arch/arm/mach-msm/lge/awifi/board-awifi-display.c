@@ -1605,6 +1605,12 @@ void __init apq8064_set_display_params(char *prim_panel, char *ext_panel,
 }
 #endif /* CONFIG_MACH_LGE */
 
+#define I2C_SURF 1
+#define I2C_FFA  (1 << 1)
+#define I2C_RUMI (1 << 2)
+#define I2C_SIM  (1 << 3)
+#define I2C_LIQUID (1 << 4)
+
 struct i2c_registry {
 	u8                     machs;
 	int                    bus;
@@ -1627,15 +1633,6 @@ struct backlight_platform_data {
    int max_brightness;
    int default_brightness;
    int factory_brightness;
-};
-
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.max_current = 0x17 | PWM_BRIGHTNESS,
-#else
-	.max_current = 0x17,
-#endif
-	.min_brightness = 0x01,
-	.max_brightness = 0x71,
 };
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
@@ -1829,7 +1826,7 @@ static struct i2c_board_info msm_i2c_backlight_info[] = {
 static struct i2c_registry apq8064_i2c_backlight_device[] __initdata = {
 
 	{
-	    I2C_FFA,
+		I2C_SURF | I2C_FFA | I2C_RUMI | I2C_SIM | I2C_LIQUID,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
 		msm_i2c_backlight_info,
 		ARRAY_SIZE(msm_i2c_backlight_info),
