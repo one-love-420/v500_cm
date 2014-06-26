@@ -339,20 +339,6 @@ static struct platform_device kcal_platrom_device = {
 };
 #endif
 
-static struct kcal_platform_data kcal_pdata = {
-	.set_values = kcal_set_values,
-	.get_values = kcal_get_values,
-	.refresh_display = kcal_refresh_values
-};
-
-static struct platform_device kcal_platrom_device = {
-	.name   = "kcal_ctrl",
-	.dev = {
-		.platform_data = &kcal_pdata,
-	}
-};
-#endif /* CONFIG_LGE_KCAL */
-
 static struct resource hdmi_msm_resources[] = {
 	{
 		.name  = "hdmi_msm_qfprom_addr",
