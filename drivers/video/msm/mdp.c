@@ -48,6 +48,10 @@
 #undef CONFIG_HAS_EARLYSUSPEND
 #endif
 
+#if defined (CONFIG_LGE_QC_LCDC_LUT)
+#include "lge_qlut.h"
+#endif
+
 uint32 mdp4_extn_disp;
 
 static struct clk *mdp_clk;
@@ -541,6 +545,16 @@ error:
 spinlock_t mdp_lut_push_lock;
 static int mdp_lut_i;
 
+#ifdef CONFIG_LGE_QC_LCDC_LUT
+extern int g_qlut_change_by_kernel;
+extern uint32 p_lg_qc_lcdc_lut[];
+#ifdef CONFIG_LGE_KCAL_QLUT
+extern int g_kcal_r;
+extern int g_kcal_g;
+extern int g_kcal_b;
+#endif /* CONFIG_LGE_KCAL_QLUT */
+#endif /* CONFIG_LGE_QC_LCDC_LUT */
+
 static int mdp_lut_hw_update(struct fb_cmap *cmap)
 {
 	int i;
@@ -552,6 +566,18 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 	c[2] = cmap->red;
 
 	for (i = 0; i < cmap->len; i++) {
+#ifdef CONFIG_LGE_QC_LCDC_LUT
+		if (g_qlut_change_by_kernel) {
+			r = ((p_lg_qc_lcdc_lut[i] & R_MASK) >> R_SHIFT);
+			g = ((p_lg_qc_lcdc_lut[i] & G_MASK) >> G_SHIFT);
+			b = ((p_lg_qc_lcdc_lut[i] & B_MASK) >> B_SHIFT);
+#ifdef CONFIG_LGE_KCAL_QLUT
+			r = scaled_by_kcal(r, g_kcal_r);
+			g = scaled_by_kcal(g, g_kcal_g);
+			b = scaled_by_kcal(b, g_kcal_b);
+#endif
+		} else
+#endif
 		if (copy_from_user(&r, cmap->red++, sizeof(r)) ||
 		    copy_from_user(&g, cmap->green++, sizeof(g)) ||
 		    copy_from_user(&b, cmap->blue++, sizeof(b)))
@@ -638,6 +664,10 @@ int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
 	u16 r, g, b;
 
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+<<<<<<< HEAD
+=======
+	mdp_clk_ctrl(1);
+>>>>>>> parent of 698827c... kcal test
 
 	for (i = 0; i < cmap->len; i++) {
 		r = lut2r(internal_lut[i]);
@@ -658,6 +688,10 @@ int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
 	/*mask off non LUT select bits*/
 	out = inpdw(MDP_BASE + 0x90070) & ~((0x1 << 10) | 0x7);
 	MDP_OUTP(MDP_BASE + 0x90070, (mdp_lut_i << 10) | 0x7 | out);
+<<<<<<< HEAD
+=======
+	mdp_clk_ctrl(0);
+>>>>>>> parent of 698827c... kcal test
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	mdp_lut_i = (mdp_lut_i + 1)%2;
 

@@ -33,13 +33,21 @@
 #include <msm/msm_fb.h>
 #include <msm/msm_fb_def.h>
 #include <msm/mipi_dsi.h>
-#include <msm/mdp.h>
 
 #include "devices.h"
 #include "board-awifi.h"
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
 #include <linux/i2c_bl.h>
+#endif
+
+#ifdef CONFIG_LGE_KCAL
+#ifdef CONFIG_LGE_QC_LCDC_LUT
+extern int set_qlut_kcal_values(int kcal_r, int kcal_g, int kcal_b);
+extern int refresh_qlut_display(void);
+#else
+#error only kcal by Qucalcomm LUT is supported now!!!
+#endif
 #endif
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
@@ -126,6 +134,7 @@ static int msm_fb_detect_panel(const char *name)
 	return 0;
 }
 
+<<<<<<< HEAD
 #ifdef CONFIG_LCD_KCAL
 struct kcal_data kcal_value;
 #endif
@@ -225,9 +234,10 @@ int update_preset_lcdc_lut(void)
 }
 #endif
 
+=======
+>>>>>>> parent of 698827c... kcal test
 static struct msm_fb_platform_data msm_fb_pdata = {
 	.detect_client = msm_fb_detect_panel,
-	.update_lcdc_lut = update_preset_lcdc_lut,
 };
 
 static struct platform_device msm_fb_device = {
@@ -369,46 +379,15 @@ void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)
 #endif
 }
 
-#ifdef CONFIG_LCD_KCAL
-int kcal_set_values(int kcal_r, int kcal_g, int kcal_b)
-{
-	kcal_value.red = kcal_r;
-	kcal_value.green = kcal_g;
-	kcal_value.blue = kcal_b;
-	return 0;
-}
-
-static int kcal_get_values(int *kcal_r, int *kcal_g, int *kcal_b)
-{
-	*kcal_r = kcal_value.red;
-	*kcal_g = kcal_value.green;
-	*kcal_b = kcal_value.blue;
-	return 0;
-}
-
-static int kcal_refresh_values(void)
-{
-	return update_preset_lcdc_lut();
-}
+#ifdef CONFIG_LGE_KCAL
+extern int set_kcal_values(int kcal_r, int kcal_g, int kcal_b);
+extern int refresh_kcal_display(void);
+extern int get_kcal_values(int *kcal_r, int *kcal_g, int *kcal_b);
 
 static struct kcal_platform_data kcal_pdata = {
-	.set_values = kcal_set_values,
-	.get_values = kcal_get_values,
-	.refresh_display = kcal_refresh_values
-};
-
-static struct platform_device kcal_platrom_device = {
-	.name   = "kcal_ctrl",
-	.dev = {
-		.platform_data = &kcal_pdata,
-	}
-};
-#endif
-
-static struct kcal_platform_data kcal_pdata = {
-	.set_values = kcal_set_values,
-	.get_values = kcal_get_values,
-	.refresh_display = kcal_refresh_values
+	.set_values = set_kcal_values,
+	.get_values = get_kcal_values,
+	.refresh_display = refresh_kcal_display
 };
 
 static struct platform_device kcal_platrom_device = {
@@ -1312,7 +1291,7 @@ static struct platform_device *awifi_panel_devices[] __initdata = {
 	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 	&mipi_dsi_lgit_panel_device,
 #endif
-#ifdef CONFIG_LCD_KCAL
+#ifdef CONFIG_LGE_KCAL
 	&kcal_platrom_device,
 #endif
 };
@@ -1323,7 +1302,7 @@ static struct platform_device *awifi_panel_devices_noCABC[] __initdata = {
 	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 	&mipi_dsi_lgit_panel_device_noCABC,
 #endif
-#ifdef CONFIG_LCD_KCAL
+#ifdef CONFIG_LGE_KCAL
 	&kcal_platrom_device,
 #endif
 };
@@ -1579,7 +1558,7 @@ static struct i2c_bl_platform_data lp8556_i2c_bl_data = {
 	.blmap = i2c_bl_mapped_lp8556_value,
 	.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lp8556_value),
 };
-#endif
+#endif*/
 
 static struct i2c_board_info msm_i2c_backlight_info[] = {
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
