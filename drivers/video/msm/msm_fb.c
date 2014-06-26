@@ -239,9 +239,9 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	struct msm_fb_data_type *mfd = dev_get_drvdata(led_cdev->dev->parent);
 	int bl_lvl;
 
-#if defined(CONFIG_BACKLIGHT_LM3530) || defined(CONFIG_BACKLIGHT_LM3533) || defined(CONFIG_BACKLIGHT_LM3532) || defined (CONFIG_BACKLIGHT_LP855X) || defined (CONFIG_BACKLIGHT_I2C_BL)
-	bl_lvl = value;
-#else /* QCT Original */
+/*#if defined(CONFIG_BACKLIGHT_LM3530) || defined(CONFIG_BACKLIGHT_LM3533) || defined(CONFIG_BACKLIGHT_LM3532) || defined (CONFIG_BACKLIGHT_LP855X) || defined (CONFIG_BACKLIGHT_I2C_BL)
+	bl_lvl = value;*/
+/*#else */
 	/* This maps android backlight level 1 to 255 into
 	   driver backlight level bl_min to bl_max with rounding
 	   and maps backlight level 0 to 0. */
@@ -254,7 +254,7 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 			(mfd->panel_info.bl_max - mfd->panel_info.bl_min) +
 			MAX_BACKLIGHT_BRIGHTNESS - 1) /
 			(MAX_BACKLIGHT_BRIGHTNESS - 1) / 2;
-#endif
+/*#endif*/
 
         down(&mfd->sem);
 	msm_fb_set_backlight(mfd, bl_lvl);
