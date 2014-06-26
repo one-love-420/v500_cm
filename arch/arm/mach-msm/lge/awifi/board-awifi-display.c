@@ -1456,7 +1456,7 @@ static struct i2c_bl_platform_data lp8556_i2c_bl_data = {
 	.blmap = i2c_bl_mapped_lp8556_value,
 	.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lp8556_value),
 };
-#endif*/
+#endif
 
 static struct i2c_board_info msm_i2c_backlight_info[] = {
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
