@@ -14,12 +14,15 @@
 
 #include <linux/init.h>
 #include <linux/ioport.h>
+#include <linux/i2c.h>
+#include <linux/kernel.h>
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
 #include <linux/bootmem.h>
 #include <linux/msm_ion.h>
 #include <asm/mach-types.h>
 #include <mach/msm_memtypes.h>
+#include <mach/board_lge.h>
 #include <mach/board.h>
 #include <mach/gpio.h>
 #include <mach/gpiomux.h>
@@ -27,14 +30,12 @@
 #include <mach/msm_bus_board.h>
 #include <mach/socinfo.h>
 
+#include <msm/msm_fb.h>
+#include <msm/msm_fb_def.h>
+#include <msm/mipi_dsi.h>
+
 #include "devices.h"
 #include "board-awifi.h"
-
-#include "../../../../drivers/video/msm/msm_fb.h"
-#include "../../../../drivers/video/msm/msm_fb_def.h"
-#include "../../../../drivers/video/msm/mipi_dsi.h"
-
-#include <mach/board_lge.h>
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
 #include <linux/i2c_bl.h>
