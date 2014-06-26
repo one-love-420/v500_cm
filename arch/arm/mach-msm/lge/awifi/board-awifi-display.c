@@ -41,9 +41,6 @@
 #include <linux/i2c_bl.h>
 #endif
 
-#include <linux/i2c.h>
-#include <linux/kernel.h>
-
 #ifndef LGE_DSDR_SUPPORT
 #define LGE_DSDR_SUPPORT
 #endif
