@@ -397,12 +397,15 @@ CONFIG_LGE_QFPROM_INTERFACE=y
 <<<<<<< HEAD
 CONFIG_UPDATE_LCDC_LUT=y
 CONFIG_LCD_KCAL=y
+<<<<<<< HEAD
 # CONFIG_LGE_KCAL_QLUT is not set
 =======
 CONFIG_LGE_QC_LCDC_LUT=y
 CONFIG_LGE_KCAL=y
 CONFIG_LGE_KCAL_QLUT=y
 >>>>>>> parent of 698827c... kcal test
+=======
+>>>>>>> parent of b6e25bc... test
 # CONFIG_LGE_BLUESLEEP is not set
 CONFIG_LGE_ECO_MODE=y
 CONFIG_LGE_CRASH_HANDLER=y

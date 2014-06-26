@@ -25,7 +25,7 @@ config LGE_QC_LCDC_LUT
 config LGE_KCAL
 	bool "Interface to calibrate LCD color temperature"
 	default n
-	depends on MACH_LGE && UPDATE_LCDC_LUT
+	depends on MACH_LGE
 	help
 	  Interface to calibrate LCD color temperature
 

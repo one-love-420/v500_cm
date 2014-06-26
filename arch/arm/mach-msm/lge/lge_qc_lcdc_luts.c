@@ -15,6 +15,7 @@
 
 /* pixel order : RBG */
 <<<<<<< HEAD
+<<<<<<< HEAD
 const unsigned int lcd_color_preset_lut[256] = {
 =======
 #ifdef CONFIG_LGE_LCD_TUNING
@@ -284,6 +285,9 @@ const unsigned int p_lg_qc_lcdc_lut[256] = {
 	0x00fcfcfc, 0x00fdfdfd, 0x00fefefe, 0x00ffffff
 #else
 >>>>>>> parent of 698827c... kcal test
+=======
+const unsigned int lcd_color_preset_lut[256] {
+>>>>>>> parent of b6e25bc... test
 	/* default linear qlut */
 	0x00000000, 0x00010101, 0x00020202, 0x00030303,
 	0x00040404, 0x00050505, 0x00060606, 0x00070707,
