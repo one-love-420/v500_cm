@@ -41,10 +41,6 @@
 #include <linux/i2c_bl.h>
 #endif
 
-#ifndef LGE_DSDR_SUPPORT
-#define LGE_DSDR_SUPPORT
-#endif
-
 #ifdef CONFIG_LGE_KCAL
 #ifdef CONFIG_LGE_QC_LCDC_LUT
 extern int set_qlut_kcal_values(int kcal_r, int kcal_g, int kcal_b);
@@ -72,10 +68,6 @@ extern int refresh_qlut_display(void);
 #endif
 #endif /*CONFIG_FB_MSM_TRIPLE_BUFFER */
 
-#ifdef LGE_DSDR_SUPPORT
-#define MSM_FB_EXT_BUF_SIZE \
-        (roundup((1920 * 1088 * 4), 4096) * 3) /* 4 bpp x 3 page */
-#else  /* LGE_DSDR_SUPPORT */
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 #define MSM_FB_EXT_BUF_SIZE \
 		(roundup((1920 * 1088 * 2), 4096) * 1) /* 2 bpp x 1 page */
@@ -85,7 +77,6 @@ extern int refresh_qlut_display(void);
 #else
 #define MSM_FB_EXT_BUF_SIZE	0
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
-#endif /* LGE_DSDR_SUPPORT */
 
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 #if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
