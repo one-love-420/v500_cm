@@ -1629,6 +1629,15 @@ struct backlight_platform_data {
    int factory_brightness;
 };
 
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
+	.max_current = 0x17 | PWM_BRIGHTNESS,
+#else
+	.max_current = 0x17,
+#endif
+	.min_brightness = 0x01,
+	.max_brightness = 0x71,
+};
+
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
 static char i2c_bl_mapped_lm3532_value[256] = {
 	  119,119,119,119,119,119,119,119,124,124,124,124,124,124,124,
