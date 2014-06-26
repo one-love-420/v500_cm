@@ -56,12 +56,7 @@ extern int refresh_qlut_display(void);
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 /* prim = 1366 x 768 x 3(bpp) x 3(pages) */
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT)
-#define MSM_FB_PRIM_BUF_SIZE roundup(768 * 1280 * 4 * 3, 0x10000)
-#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
-#define MSM_FB_PRIM_BUF_SIZE roundup(1088 * 1920 * 4 * 3, 0x10000)
-#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
 	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 #define MSM_FB_PRIM_BUF_SIZE roundup(1208 * 1920 * 4 * 3, 0x10000)
 #else
@@ -69,12 +64,7 @@ extern int refresh_qlut_display(void);
 #endif
 #else
 /* prim = 1366 x 768 x 3(bpp) x 2(pages) */
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT)
-#define MSM_FB_PRIM_BUF_SIZE roundup(768 * 1280 * 4 * 2, 0x10000)
-#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
-#define MSM_FB_PRIM_BUF_SIZE roundup(1088 * 1920 * 4 * 2, 0x10000)
-#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
 	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 #define MSM_FB_PRIM_BUF_SIZE roundup(1208 * 1920 * 4 * 2, 0x10000)
 #else
@@ -98,11 +88,7 @@ extern int refresh_qlut_display(void);
 #endif /* LGE_DSDR_SUPPORT */
 
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
-#define MSM_FB_WFD_BUF_SIZE \
-		(roundup((1920 * 1088 * 2), 4096) * 3) /* 2 bpp x 3 page */
-#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
 	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 #define MSM_FB_WFD_BUF_SIZE \
 		(roundup((1920 * 1208 * 2), 4096) * 3) /* 2 bpp x 3 page */
@@ -119,12 +105,7 @@ extern int refresh_qlut_display(void);
 		MSM_FB_EXT_BUF_SIZE + MSM_FB_WFD_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-	#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT)
-	#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((768 * 1280 * 3 * 2), 4096)
-	#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
-	#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1088 * 1920 * 3 * 2), 4096)
-	#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
+	#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
 	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 	#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1208 * 1920 * 3 * 2), 4096)
 	#else
@@ -1185,29 +1166,13 @@ error:
 	return rc;
 }
 
-#if defined (CONFIG_BACKLIGHT_LM3530)
-extern void lm3530_lcd_backlight_set_level( int level);
-#elif defined (CONFIG_BACKLIGHT_LM3533)
-extern void lm3533_lcd_backlight_set_level( int level);
-#elif defined (CONFIG_BACKLIGHT_LM3630)
-extern void lm3630_lcd_backlight_set_level( int level);
-#elif defined (CONFIG_BACKLIGHT_LM3532)
-extern void lm3532_lcd_backlight_set_level( int level);
-#elif defined (CONFIG_BACKLIGHT_I2C_BL)
+#if defined (CONFIG_BACKLIGHT_I2C_BL)
 extern void i2c_bl_lcd_backlight_set_level_export( int level);
-#endif /* CONFIG_BACKLIGHT_LMXXXX */
+#endif
 
 static int mipi_lgit_backlight_level(int level, int max, int min)
 {
-#if defined (CONFIG_BACKLIGHT_LM3530)
-	lm3530_lcd_backlight_set_level(level);
-#elif defined (CONFIG_BACKLIGHT_LM3533)
-	lm3533_lcd_backlight_set_level(level);
-#elif defined (CONFIG_BACKLIGHT_LM3630)
-	lm3630_lcd_backlight_set_level(level);
-#elif defined (CONFIG_BACKLIGHT_LM3532)
-	lm3532_lcd_backlight_set_level(level);
-#elif defined (CONFIG_BACKLIGHT_I2C_BL)
+#if defined (CONFIG_BACKLIGHT_I2C_BL)
 	i2c_bl_lcd_backlight_set_level_export(level);
 #endif
 	return 0;
@@ -1573,7 +1538,7 @@ void __init apq8064_init_fb(void)
  * Set MDP clocks to high frequency to avoid DSI underflow
  * when using high resolution 1200x1920 WUXGA panels
  */
- #ifndef CONFIG_MACH_LGE
+#ifndef CONFIG_MACH_LGE
 static void set_mdp_clocks_for_wuxga(void)
 {
 	mdp_ui_vectors[0].ab = 2000000000;
@@ -1640,12 +1605,6 @@ void __init apq8064_set_display_params(char *prim_panel, char *ext_panel,
 }
 #endif /* CONFIG_MACH_LGE */
 
-#define I2C_SURF 1
-#define I2C_FFA  (1 << 1)
-#define I2C_RUMI (1 << 2)
-#define I2C_SIM  (1 << 3)
-#define I2C_LIQUID (1 << 4)
-
 struct i2c_registry {
 	u8                     machs;
 	int                    bus;
@@ -1670,58 +1629,7 @@ struct backlight_platform_data {
    int factory_brightness;
 };
 
-#if defined (CONFIG_BACKLIGHT_LM3530)
-static struct backlight_platform_data lm3530_data = {
-
-	.gpio = PM8921_GPIO_PM_TO_SYS(24),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.max_current = 0x17 | PWM_BRIGHTNESS,
-#else
-	.max_current = 0x17,
-#endif
-	.min_brightness = 0x01,
-	.max_brightness = 0x71,
-};
-#elif defined(CONFIG_BACKLIGHT_LM3533)
-static struct backlight_platform_data lm3533_data = {
-	.gpio = PM8921_GPIO_PM_TO_SYS(24),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.max_current = 0x17 | PWM_SIMPLE_EN,
-#else
-	.max_current = 0x17,
-#endif
-	.min_brightness = 0x05,
-	.max_brightness = 0xFF,
-	.default_brightness = 0x9C,
-	.factory_brightness = 0x78,
-};
-#elif defined(CONFIG_BACKLIGHT_LM3630)
-static struct backlight_platform_data lm3630_data = {
-	.gpio = PM8921_GPIO_PM_TO_SYS(24),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.max_current = 0x17 | PWM_SIMPLE_EN,
-#else
-	.max_current = 0x17,
-#endif
-	.min_brightness = 0x05,
-	.max_brightness = 0xFF,
-	.default_brightness = 0x9C,
-	.factory_brightness = 0x78,
-};
-#elif defined(CONFIG_BACKLIGHT_LM3532)
-static struct backlight_platform_data lm3532_data = {
-	.gpio = PM8921_GPIO_PM_TO_SYS(24),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.max_current = 0x17 | PWM_SIMPLE_EN,
-#else
-	.max_current = 0x17,
-#endif
-	.min_brightness = 0x05,
-	.max_brightness = 0xFF,
-	.default_brightness = 0x9C,
-	.factory_brightness = 0x78,
-};
-#elif defined(CONFIG_BACKLIGHT_I2C_BL)
+#if defined(CONFIG_BACKLIGHT_I2C_BL)
 static char i2c_bl_mapped_lm3532_value[256] = {
 	  119,119,119,119,119,119,119,119,124,124,124,124,124,124,124,
 	124,124,124,124,124,124,124,128,128,128,128,128,128,128,128,
@@ -1905,22 +1813,14 @@ static struct i2c_bl_platform_data lp8556_i2c_bl_data = {
 #endif
 
 static struct i2c_board_info msm_i2c_backlight_info[] = {
-#if defined(CONFIG_BACKLIGHT_LM3530)
-	{ I2C_BOARD_INFO("lm3530", 0x38), .platform_data = &lm3530_data, },
-#elif defined(CONFIG_BACKLIGHT_LM3533)
-	{ I2C_BOARD_INFO("lm3533", 0x38), .platform_data = &lm3533_data, },
-#elif defined(CONFIG_BACKLIGHT_LM3630)
-	{ I2C_BOARD_INFO("lm3630", 0x38), .platform_data = &lm3630_data, },
-#elif defined(CONFIG_BACKLIGHT_LM3532)
-	{ I2C_BOARD_INFO("lm3532", 0x38), .platform_data = &lm3532_data, },
-#elif defined(CONFIG_BACKLIGHT_I2C_BL)
+#if defined(CONFIG_BACKLIGHT_I2C_BL)
 	{ I2C_BOARD_INFO("i2c_bl", 0x38), .platform_data = &lm3532_i2c_bl_data, },
 #endif
 };
 static struct i2c_registry apq8064_i2c_backlight_device[] __initdata = {
 
 	{
-	    I2C_SURF | I2C_FFA | I2C_RUMI | I2C_SIM | I2C_LIQUID,
+	    I2C_FFA,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
 		msm_i2c_backlight_info,
 		ARRAY_SIZE(msm_i2c_backlight_info),
@@ -1933,17 +1833,7 @@ void __init register_i2c_backlight_devices(void)
 	int i;
 
 	/* Build the matching 'supported_machs' bitmask */
-	if (machine_is_apq8064_cdp())
-		mach_mask = I2C_SURF;
-	else if (machine_is_apq8064_mtp())
-		mach_mask = I2C_FFA;
-	else if (machine_is_apq8064_liquid())
-		mach_mask = I2C_LIQUID;
-	else if (machine_is_apq8064_rumi3())
-		mach_mask = I2C_RUMI;
-	else if (machine_is_apq8064_sim())
-		mach_mask = I2C_SIM;
-	else if (machine_is_apq8064_awifi())
+	if (machine_is_apq8064_awifi())
 		mach_mask = I2C_FFA;
 	else
 		pr_err("unmatched machine ID in register_i2c_devices\n");
