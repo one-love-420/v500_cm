@@ -10,4 +10,6 @@ obj-$(CONFIG_MACH_APQ8064_AWIFI) += board-awifi.o \
 	board-awifi-storage.o \
 	board-awifi-nfc.o \
 	board-awifi-rfkill.o
+
+CFLAGS_board-mako-display.o += -Idrivers/video
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_MXT1188S) += board-awifi-input.o
