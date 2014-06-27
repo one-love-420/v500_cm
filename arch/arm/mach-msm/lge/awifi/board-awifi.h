@@ -221,6 +221,23 @@ extern struct msm_rtb_platform_data apq8064_rtb_pdata;
 extern struct msm_cache_dump_platform_data apq8064_cache_dump_pdata;
 void apq8064_init_input(void);
 void __init apq8064_init_misc(void);
-//2013-05-29 goensoo.kim@lge.com [AWIFI/Touch] Enable atmel touchscreen driver for REV_A
 void apq8064_awifi_init_input(void);
+
+
+#define I2C_SURF 1
+#define I2C_FFA  (1 << 1)
+#define I2C_RUMI (1 << 2)
+#define I2C_SIM  (1 << 3)
+#define I2C_LIQUID (1 << 4)
+#define I2C_MPQ_CDP BIT(5)
+#define I2C_MPQ_HRD BIT(6)
+#define I2C_MPQ_DTV BIT(7)
+
+struct i2c_registry {
+	u8                     machs;
+	int                    bus;
+	struct i2c_board_info *info;
+	int                    len;
+};
+
 #endif

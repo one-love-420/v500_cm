@@ -600,6 +600,7 @@ static int hdmi_enable_5v(int on)
 
 static int hdmi_core_power(int on, int show)
 {
+	static struct regulator *reg_8921_lvs7;
 	static int prev_on;
 	int rc;
 
@@ -999,8 +1000,8 @@ static struct i2c_board_info msm_i2c_backlight_info[] = {
 	{ I2C_BOARD_INFO("i2c_bl", 0x38), .platform_data = &lm3532_i2c_bl_data, },
 #endif
 };
-static struct i2c_registry apq8064_i2c_backlight_device[] __initdata = {
 
+static struct i2c_registry apq8064_i2c_backlight_device[] __initdata = {
 	{
 		I2C_FFA,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
@@ -1015,9 +1016,8 @@ void __init register_i2c_backlight_devices(void)
 
 	/* Run the array and install devices as appropriate */
 	for (i = 0; i < ARRAY_SIZE(apq8064_i2c_backlight_device); ++i) {
-		if (apq8064_i2c_backlight_device[i].machs & mach_mask)
-			i2c_register_board_info(apq8064_i2c_backlight_device[i].bus,
-						apq8064_i2c_backlight_device[i].info,
-						apq8064_i2c_backlight_device[i].len);
+		i2c_register_board_info(apq8064_i2c_backlight_device[i].bus,
+					apq8064_i2c_backlight_device[i].info,
+					apq8064_i2c_backlight_device[i].len);
 	}
 }

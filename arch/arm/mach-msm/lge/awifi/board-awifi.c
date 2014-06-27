@@ -56,9 +56,6 @@
 #include "devices.h"
 #include <mach/gpiomux.h>
 #include <mach/rpm.h>
-#ifdef CONFIG_LEDS_LP5521
-#include <linux/leds-lp5521.h>
-#endif
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
 #endif
@@ -3695,22 +3692,6 @@ static void __init apq8064_init_dsps(void)
 
 	platform_device_register(&msm_dsps_device_8064);
 }
-
-#define I2C_SURF 1
-#define I2C_FFA  (1 << 1)
-#define I2C_RUMI (1 << 2)
-#define I2C_SIM  (1 << 3)
-#define I2C_LIQUID (1 << 4)
-#define I2C_MPQ_CDP	BIT(5)
-#define I2C_MPQ_HRD	BIT(6)
-#define I2C_MPQ_DTV	BIT(7)
-
-struct i2c_registry {
-	u8                     machs;
-	int                    bus;
-	struct i2c_board_info *info;
-	int                    len;
-};
 
 static struct i2c_registry apq8064_i2c_devices[] __initdata = {
 #ifdef CONFIG_SMB349_CHARGER
