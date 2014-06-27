@@ -32,7 +32,9 @@ static struct dsi_buf lgit_camera_tx_buf;
 static struct dsi_buf lgit_shutdown_tx_buf;
 
 static int __init mipi_lgit_lcd_init(void);
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
 static bool lgit_lcd_cabc_state(void);
+#endif
 
 static int check_stable_lcd_on = 1;
 
@@ -62,7 +64,9 @@ static int mipi_stable_lcd_on(struct platform_device *pdev)
 int mipi_lgit_lcd_on(struct platform_device *pdev)
 {
 	int cnt = 0;
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
 	bool cabc_off_state = 1;
+#endif
 	struct msm_fb_data_type *mfd;
 
 	if (check_stable_lcd_on)
@@ -75,9 +79,6 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 		return -EINVAL;
 
 	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
-
-//LGE_UPDATE_S hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
-	//MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);     //HS mode
 
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		mipi_lgit_pdata->power_on_set_1,
@@ -128,7 +129,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 
 	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
 
-	return cnt;
+	return 0;
 }
 
 int mipi_lgit_lcd_off(struct platform_device *pdev)
@@ -147,7 +148,6 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 		return -EINVAL;
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);//HS mode
-//	mipi_dsi_cmds_tx(mfd, &lgit_tx_buf, 
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		mipi_lgit_pdata->power_off_set_1,	
 		mipi_lgit_pdata->power_off_set_size_1);
@@ -159,7 +159,7 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
 	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
 
-	return cnt;
+	return 0;
 }
 
 static void mipi_lgit_set_backlight_board(struct msm_fb_data_type *mfd)
@@ -196,8 +196,9 @@ static bool lgit_lcd_cabc_state(void)
 
 static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 {
-    int err;
-
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
+    int err = 0;
+#endif
 	if (pdev->id == 0) {
 		mipi_lgit_pdata = pdev->dev.platform_data;
 		return 0;
