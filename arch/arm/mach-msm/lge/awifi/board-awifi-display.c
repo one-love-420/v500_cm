@@ -15,6 +15,9 @@
 #include <linux/init.h>
 #include <linux/ioport.h>
 #include <linux/i2c.h>
+#if defined(CONFIG_BACKLIGHT_I2C_BL)
+#include <linux/i2c_bl.h>
+#endif
 #include <linux/kernel.h>
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
@@ -36,10 +39,6 @@
 
 #include "devices.h"
 #include "board-awifi.h"
-
-#if defined(CONFIG_BACKLIGHT_I2C_BL)
-#include <linux/i2c_bl.h>
-#endif
 
 #ifdef CONFIG_LGE_KCAL
 #ifdef CONFIG_LGE_QC_LCDC_LUT
@@ -117,17 +116,6 @@ static struct resource msm_fb_resources[] = {
 		.flags = IORESOURCE_DMA,
 	}
 };
-
-#define LVDS_CHIMEI_PANEL_NAME "lvds_chimei_wxga"
-#define LVDS_FRC_PANEL_NAME "lvds_frc_fhd"
-#define MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME "mipi_video_toshiba_wsvga"
-#define MIPI_VIDEO_CHIMEI_WXGA_PANEL_NAME "mipi_video_chimei_wxga"
-#define HDMI_PANEL_NAME "hdmi_msm"
-#define MHL_PANEL_NAME "hdmi_msm,mhl_8334"
-#define TVOUT_PANEL_NAME "tvout_msm"
-
-#define LVDS_PIXEL_MAP_PATTERN_1	1
-#define LVDS_PIXEL_MAP_PATTERN_2	2
 
 static int msm_fb_detect_panel(const char *name)
 {
@@ -379,17 +367,7 @@ struct lcd_delay {
 	unsigned iovcc_lcdvdd;
 };
 
-/* Define to delay for power sequence */
-static struct lcd_delay lcd_power_sequence_delay_LD089WU1 = {
-	.lcdvdd_lcdvdd = 400, /* 400 ms  */
-	.lcdvdd_iovcc = 120, /* 120 ms */
-	.iovcc_vdda = 0, /* no delay */
-	.vdda = 0, /* no delay */
-
-	.vdda_iovcc = 1, /* 1 ms */
-	.iovcc_lcdvdd = 10, /* 10ms */
-};
-
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT)
 static struct lcd_delay lcd_power_sequence_delay_LD083WU1 = {
 	.lcdvdd_lcdvdd = 400, /* 400 ms  */
 	.lcdvdd_iovcc = 0, /* no delay */
@@ -401,6 +379,7 @@ static struct lcd_delay lcd_power_sequence_delay_LD083WU1 = {
 };
 
 static struct lcd_delay *lcd_power_sequence_delay = &lcd_power_sequence_delay_LD083WU1;
+#endif
 
 static bool dsi_power_on = false;
 static int mipi_dsi_panel_power(int on)
@@ -504,9 +483,7 @@ static int mipi_dsi_panel_power(int on)
 		/* Delay for VDDA. */
 		if (lcd_power_sequence_delay->vdda)
 			mdelay(lcd_power_sequence_delay->vdda);
-              }
-       else /* LCD off start (power side) */
-       {
+	} else { /* LCD off start (power side) */
               printk(KERN_INFO "[LCD][DEBUG] %s: lcd power off (status=%d)\n", __func__, on);
 		/* Disable DSI VDDA */
 		rc = regulator_disable(reg_l2);
@@ -618,74 +595,16 @@ static int hdmi_panel_power(int on)
 
 static int hdmi_enable_5v(int on)
 {
-#ifdef CONFIG_HDMI_MVS
-	/* TBD: PM8921 regulator instead of 8901 */
-	static struct regulator *reg_8921_hdmi_mvs;	/* HDMI_5V */
-	static int prev_on;
-	int rc;
-
-	if (on == prev_on)
-		return 0;
-
-	if (!reg_8921_hdmi_mvs) {
-		reg_8921_hdmi_mvs = regulator_get(&hdmi_msm_device.dev,
-			"hdmi_mvs");
-		if (IS_ERR(reg_8921_hdmi_mvs)) {
-			pr_err("could not get reg_8921_hdmi_mvs, rc = %ld\n",
-				PTR_ERR(reg_8921_hdmi_mvs));
-			reg_8921_hdmi_mvs = NULL;
-			return -ENODEV;
-		}
-	}
-
-	if (on) {
-		rc = regulator_enable(reg_8921_hdmi_mvs);
-		if (rc) {
-			pr_err("'%s' regulator enable failed, rc=%d\n",
-				"8921_hdmi_mvs", rc);
-			return rc;
-		}
-		pr_debug("%s(on): success\n", __func__);
-	} else {
-		rc = regulator_disable(reg_8921_hdmi_mvs);
-		if (rc)
-			pr_warning("'%s' regulator disable failed, rc=%d\n",
-				"8921_hdmi_mvs", rc);
-		pr_debug("%s(off): success\n", __func__);
-	}
-
-	prev_on = on;
-#endif
-
 	return 0;
 }
 
 static int hdmi_core_power(int on, int show)
 {
-#ifdef CONFIG_HDMI_MVS
-	static struct regulator *reg_8921_lvs7, *reg_8921_s4, *reg_ext_3p3v;
-#else
-	static struct regulator *reg_8921_lvs7;
-#endif
 	static int prev_on;
 	int rc;
 
 	if (on == prev_on)
 		return 0;
-
-#ifdef CONFIG_HDMI_MVS
-	/* TBD: PM8921 regulator instead of 8901 */
-	if (!reg_ext_3p3v) {
-		reg_ext_3p3v = regulator_get(&hdmi_msm_device.dev,
-					     "hdmi_mux_vdd");
-		if (IS_ERR_OR_NULL(reg_ext_3p3v)) {
-			pr_err("could not get reg_ext_3p3v, rc = %ld\n",
-			       PTR_ERR(reg_ext_3p3v));
-			reg_ext_3p3v = NULL;
-			return -ENODEV;
-		}
-	}
-#endif
 
 	if (!reg_8921_lvs7) {
 		reg_8921_lvs7 = regulator_get(&hdmi_msm_device.dev,
@@ -697,79 +616,25 @@ static int hdmi_core_power(int on, int show)
 			return -ENODEV;
 		}
 	}
-#ifdef CONFIG_HDMI_MVS
-	if (!reg_8921_s4) {
-		reg_8921_s4 = regulator_get(&hdmi_msm_device.dev,
-					    "hdmi_lvl_tsl");
-		if (IS_ERR(reg_8921_s4)) {
-			pr_err("could not get reg_8921_s4, rc = %ld\n",
-				PTR_ERR(reg_8921_s4));
-			reg_8921_s4 = NULL;
-			return -ENODEV;
-		}
-		rc = regulator_set_voltage(reg_8921_s4, 1800000, 1800000);
-		if (rc) {
-			pr_err("set_voltage failed for 8921_s4, rc=%d\n", rc);
-			return -EINVAL;
-		}
-	}
-#endif
 
 	if (on) {
 		/*
 		 * Configure 3P3V_BOOST_EN as GPIO, 8mA drive strength,
 		 * pull none, out-high
 		 */
-#ifdef CONFIG_HDMI_MVS
-		rc = regulator_set_optimum_mode(reg_ext_3p3v, 290000);
-		if (rc < 0) {
-			pr_err("set_optimum_mode ext_3p3v failed, rc=%d\n", rc);
-			return -EINVAL;
-		}
-
-		rc = regulator_enable(reg_ext_3p3v);
-		if (rc) {
-			pr_err("enable reg_ext_3p3v failed, rc=%d\n", rc);
-			return rc;
-		}
-#endif
 		rc = regulator_enable(reg_8921_lvs7);
 		if (rc) {
 			pr_err("'%s' regulator enable failed, rc=%d\n",
 				"hdmi_vdda", rc);
 			goto error1;
 		}
-#ifdef CONFIG_HDMI_MVS
-		rc = regulator_enable(reg_8921_s4);
-		if (rc) {
-			pr_err("'%s' regulator enable failed, rc=%d\n",
-				"hdmi_lvl_tsl", rc);
-			goto error2;
-		}
-		pr_debug("%s(on): success\n", __func__);
-#endif
 	} else {
-#ifdef CONFIG_HDMI_MVS
-		rc = regulator_disable(reg_ext_3p3v);
-		if (rc) {
-			pr_err("disable reg_ext_3p3v failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-#else
 		rc = regulator_disable(reg_8921_lvs7);
 		if (rc) {
 			pr_err("disable reg_8921_l23 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
-#endif
 
-#ifdef CONFIG_HDMI_MVS
-		rc = regulator_disable(reg_8921_s4);
-		if (rc) {
-			pr_err("disable reg_8921_s4 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-#endif
 		pr_debug("%s(off): success\n", __func__);
 	}
 
@@ -777,25 +642,14 @@ static int hdmi_core_power(int on, int show)
 
 	return 0;
 
-#ifdef CONFIG_HDMI_MVS
-error2:
-	regulator_disable(reg_8921_lvs7);
-error1:
-	regulator_disable(reg_ext_3p3v);
-	return rc;
-#else
 error1:
 	return rc;
-#endif
 }
 
 static int hdmi_gpio_config(int on)
 {
 	int rc = 0;
 	static int prev_on;
-#ifdef CONFIG_HDMI_MVS
-	int pmic_gpio14 = PM8921_GPIO_PM_TO_SYS(14);
-#endif
 
 	if (on == prev_on)
 		return 0;
@@ -819,39 +673,17 @@ static int hdmi_gpio_config(int on)
 				"HDMI_HPD", HDMI_HPD_GPIO, rc);
 			goto error3;
 		}
-#ifdef CONFIG_HDMI_MVS
-		if (machine_is_apq8064_liquid()) {
-			rc = gpio_request(pmic_gpio14, "PMIC_HDMI_MUX_SEL");
-			if (rc) {
-				pr_err("'%s'(%d) gpio_request failed, rc=%d\n",
-					"PMIC_HDMI_MUX_SEL", 14, rc);
-				goto error4;
-			}
-			gpio_set_value_cansleep(pmic_gpio14, 0);
-		}
-		pr_debug("%s(on): success\n", __func__);
-#endif
 	} else {
 		gpio_free(HDMI_DDC_CLK_GPIO);
 		gpio_free(HDMI_DDC_DATA_GPIO);
 		gpio_free(HDMI_HPD_GPIO);
 
-#ifdef CONFIG_HDMI_MVS
-		if (machine_is_apq8064_liquid()) {
-			gpio_set_value_cansleep(pmic_gpio14, 1);
-			gpio_free(pmic_gpio14);
-		}
-#endif
 		pr_debug("%s(off): success\n", __func__);
 	}
 
 	prev_on = on;
 	return 0;
 
-#ifdef CONFIG_HDMI_MVS
-error4:
-	gpio_free(HDMI_HPD_GPIO);
-#endif
 error3:
 	gpio_free(HDMI_DDC_DATA_GPIO);
 error2:
@@ -928,172 +760,6 @@ static char set_pwm_duty_LD083WU1	[2] = {0xbb, 0xff};
 /* Disable CE algorithm */
 //static char ce_disable_LD083WU1		[2] = {0xb8, 0x00};
 #endif
-
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-/* Disable bypass PWMI, Enable PWMO, Pol=High, 3 frame mask, Enable internal freq. gen. */
-//static char cabc_reg0_LD089WU1 			  [2] = {0xe0, (1<<7)|(0<<6)|(1<<0)};
-
-/* Disable bypass PWMI, Enable PWMO, Pol=High, 2 frame mask, Enable internal freq. gen. */
-static char cabc_reg0_LD089WU1			[2] = {0xe0, (0<<7)|(0<<6)|(1<<5)|(2<<1)|(0<<0)};
-
-/* PWMO freq. equal to internal gen. freq., PWM freq = 1.2KHz */
-static char cabc_reg1_LD089WU1			[2] = {0xe1, (1<<7)|(1<<6)|(0<<4)|((20>>8)<<0)};
-
-/* prd_divider[7:0]:20*prd_sel:1.2KHz */
-static char cabc_reg2_LD089WU1			[2] = {0xe2, (20<<0)};
-
-/* cabc_dither_enable:1: Enable CABC dither (for smooth), Modify_rgb:1:Modify RGB value according to PWM value */
-static char cabc_reg4_LD089WU1			[2] = {0xe4, (1<<7)|(1<<6)};
-
-/* Abrupt_threshold: 0:disable this function */
-static char cabc_reg5_LD089WU1			[2] = {0xe5, 0};
-
-/* Adjust_frame_rate:7, Adjust_step:7 */
-static char cabc_reg6_LD089WU1			[2] = {0xe6, (7<<4)|(7<<0)};
-
-/* Pwm_min:0x88 */
-static char cabc_reg7_LD089WU1			[2] = {0xe7, 0x88};
-
-/* Pwm_ref:0: by Pwm_set, en_inv_pwmo:0:PWMO */
-static char cabc_reg8_LD089WU1			[2] = {0xe8, (0<<7)|(0<<4)};
-
-/* Pwm_Set:45%, Maximum duty of PWMO when pwm_ref =0 */
-static char cabc_reg9_LD089WU1			[2] = {0xe9, (unsigned char)(45*255/100)};
-
-/* Average_ratio:0 : maximum Luminance, Allow_distort:255-(15)*2 */
-static char cabc_rega_LD089WU1			[2] = {0xea, (0<<4)|(15<<0)};
-
-/* Bypass_pwmi:0:disable, En_bfrm_maxpwm:0:disable */
-static char cabc_regb_LD089WU1			[2] = {0xeb, (0<<6)|(0<<5)};
-
-/* CABC_En:1:Enable */
-static char cabc_reg0e_LD089WU1			[2] = {0x0e, (1<<3)};
-
-/* Enter Page 0 access mode */
-static char change_page0_mode_LD089WU1		[2] = {0xf3, 0xa0};
-
-/* Enter Page 6 access mode */
-static char change_page6_mode_LD089WU1		[2] = {0xf3, 0xa6};
-
-/* Enter Page 7 access mode */
-static char change_page7_mode_LD089WU1		[2] = {0xf3, 0xa7};
-
-
-#if 0
-static char cabc_lut1_LD089WU1			[65] = {0x00,
-							0x00, 0x04, 0x08, 0x0C, 0x10, 0x14, 0x18, 0x1C,
-							0x20, 0x24, 0x28, 0x2C, 0x30, 0x34, 0x38, 0x3C,
-							0x40, 0x44, 0x48, 0x4C, 0x50, 0x55, 0x59, 0x5D,
-							0x61, 0x65, 0x69, 0x6D, 0x71, 0x75, 0x79, 0x7D,
-							0x81, 0x85, 0x89, 0x8D, 0x91, 0x95, 0x99, 0x9D,
-							0xA1, 0xA5, 0xAA, 0xAE, 0xB2, 0xB6, 0xBA, 0xBE,
-							0xC2, 0xC6, 0xCA, 0xCE, 0xD2, 0xD6, 0xDA, 0xDE,
-							0xE2, 0xE6, 0xEA, 0xEE, 0xF2, 0xF6, 0xFA, 0xFF};
-#endif
-
-static char cabc_lut1_LD089WU1			[] = {0x00,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-							0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-/* Enter DSI command mode */
-static char change_dsi_cmd_mode_LD089WU1 	[2] = {0x00, 0x00};
-#endif
-
-/* initialize device */
-static struct dsi_cmd_desc lgit_power_on_set_1_LD089WU1[] = {
-	/*  Display Initial Set */
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 20, sizeof(set_address_mode),set_address_mode},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 20, sizeof(pixel_format),pixel_format},
-};
-
-static struct dsi_cmd_desc lgit_power_on_set_2_LD089WU1[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(exit_sleep_mode), exit_sleep_mode},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
-};
-
-static struct dsi_cmd_desc lgit_power_off_set_LD089WU1[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, 20, sizeof(display_off), display_off},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 100, sizeof(enter_sleep_mode), enter_sleep_mode},
-};
-
-static struct dsi_cmd_desc lgit_shutdown_set_LD089WU1[] = {
-       {DTYPE_DCS_WRITE, 1, 0, 0, 0,  sizeof(display_off), display_off},
-};
-
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-static struct dsi_cmd_desc lgit_power_on_set_3_LD089WU1[] = {
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 20, sizeof(change_page0_mode_LD089WU1), change_page0_mode_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg0_LD089WU1), cabc_reg0_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg1_LD089WU1), cabc_reg1_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg2_LD089WU1), cabc_reg2_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg4_LD089WU1), cabc_reg4_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg5_LD089WU1), cabc_reg5_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg6_LD089WU1), cabc_reg6_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg7_LD089WU1), cabc_reg7_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg8_LD089WU1), cabc_reg8_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg9_LD089WU1), cabc_reg9_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_rega_LD089WU1), cabc_rega_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_regb_LD089WU1), cabc_regb_LD089WU1},
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(cabc_reg0e_LD089WU1), cabc_reg0e_LD089WU1},
-
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(change_page6_mode_LD089WU1), change_page6_mode_LD089WU1},
-	{DTYPE_GEN_LWRITE,  1, 0, 0, 0, sizeof(cabc_lut1_LD089WU1), cabc_lut1_LD089WU1},
-
-	{DTYPE_GEN_WRITE2,  1, 0, 0, 0, sizeof(change_page7_mode_LD089WU1), change_page7_mode_LD089WU1},
-	{DTYPE_GEN_LWRITE,  1, 0, 0, 0, sizeof(cabc_lut1_LD089WU1), cabc_lut1_LD089WU1},
-
-	{DTYPE_GEN_WRITE,   1, 0, 0, 20, 0, change_dsi_cmd_mode_LD089WU1},
-};
-#endif
-
-static struct msm_panel_common_pdata mipi_lgit_pdata_LD089WU1 = {
-	.backlight_level = mipi_lgit_backlight_level,
-	.power_on_set_1 = lgit_power_on_set_1_LD089WU1,
-	.power_on_set_size_1 = ARRAY_SIZE(lgit_power_on_set_1_LD089WU1),
-	.power_on_set_2 = lgit_power_on_set_2_LD089WU1,
-	.power_on_set_size_2 = ARRAY_SIZE(lgit_power_on_set_2_LD089WU1),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.power_on_set_3 = lgit_power_on_set_3_LD089WU1,
-	.power_on_set_size_3 = ARRAY_SIZE(lgit_power_on_set_3_LD089WU1),
-#endif
-	.power_off_set_1 = lgit_power_off_set_LD089WU1,
-	.power_off_set_size_1 = ARRAY_SIZE(lgit_power_off_set_LD089WU1),
-	.power_off_set_2 = lgit_shutdown_set_LD089WU1,
-	.power_off_set_size_2 = ARRAY_SIZE(lgit_shutdown_set_LD089WU1),
-};
 
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
@@ -1208,23 +874,16 @@ static struct platform_device *awifi_panel_devices_noCABC[] __initdata = {
 
 void __init apq8064_init_fb(void)
 {
-    hw_rev_type lge_board_rev;
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
+	hw_rev_type lge_board_rev = lge_get_board_revno();
+#endif
 
 	platform_device_register(&msm_fb_device);
-
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 	platform_device_register(&wfd_panel_device);
 	platform_device_register(&wfd_device);
 #endif /* CONFIG_FB_MSM_WRITEBACK_MSM_PANEL */
 
-/* LGE_CHANGE_START: ilhwan.ahn@lge.com, 2013.05.27,  For the one-binary, runtime configuration */
-    lge_board_rev = lge_get_board_revno();
-
-	if (lge_board_rev == HW_REV_EVB2) {
-		lcd_power_sequence_delay = &lcd_power_sequence_delay_LD089WU1;
-		mipi_dsi_lgit_panel_device.dev.platform_data = &mipi_lgit_pdata_LD089WU1;
-	}
-/* LGE_CHANGE_END: ilhwan.ahn@lge.com, 2013.05.27,  For the one-binary, runtime configuration */
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 	if (lge_board_rev > HW_REV_1_0) {
 	    platform_add_devices(awifi_panel_devices,ARRAY_SIZE(awifi_panel_devices));
@@ -1244,36 +903,6 @@ void __init apq8064_init_fb(void)
  * Set MDP clocks to high frequency to avoid DSI underflow
  * when using high resolution 1200x1920 WUXGA panels
  */
-
-#define I2C_SURF 1
-#define I2C_FFA  (1 << 1)
-#define I2C_RUMI (1 << 2)
-#define I2C_SIM  (1 << 3)
-#define I2C_LIQUID (1 << 4)
-
-struct i2c_registry {
-	u8                     machs;
-	int                    bus;
-	struct i2c_board_info *info;
-	int                    len;
-};
-
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-#define PWM_SIMPLE_EN 0xA0
-#define PWM_BRIGHTNESS 0x20
-#endif
-
-struct backlight_platform_data {
-	void (*platform_init)(void);
-	int gpio;
-	unsigned int mode;
-	int max_current;
-	int init_on_boot;
-	int min_brightness;
-	int max_brightness;
-	int default_brightness;
-	int factory_brightness;
-};
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
 static char i2c_bl_mapped_lm3532_value[256] = {
@@ -1340,8 +969,8 @@ static struct i2c_bl_cmd i2c_bl_set_get_brightness_lm3532_cmds[] = {
 static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.gpio = PM8921_GPIO_PM_TO_SYS(24),
 	.i2c_addr = 0x38,
-	.min_brightness = 0x78,
-	.max_brightness = 0x05,
+	.min_brightness = 0x05,
+	.max_brightness = 0xFF,
 	.default_brightness = 0x9C,
 	.factory_brightness = 0x78,
 
@@ -1364,100 +993,7 @@ static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lm3532_value),
 };
 
-static char i2c_bl_mapped_lp8556_value[256] = {
-	  3,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  4,   // 14
-	  4,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,  5,  5,  5,   // 29
-	  5,  5,  5,  5,  5,  6,  6,  6,  6,  6,  6,  6,  6,  7,  7,   // 44
-	  7,  8,  8,  8,  9,  9,  9,  9,  9, 10, 10, 10, 11, 11, 11,   // 59
-	 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 15, 15, 15, 16, 16,   // 74
-	 17, 17, 17, 18, 18, 18, 19, 19, 20, 21, 22, 22, 23, 24, 24,   // 89
-	 25, 25, 26, 26, 27, 28, 28, 29, 29, 30, 30, 31, 31, 32, 32,   // 104
-	 33, 34, 35, 35, 36, 36, 37, 38, 39, 39, 40, 41, 41, 42, 43,   // 119
-	 44, 45, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,   // 134
-	 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,   // 149
-	 73, 74, 75, 76, 76, 77, 78, 80, 81, 82, 83, 85, 86, 87, 88,   // 164
-	 89, 90, 91, 93, 95, 96, 97, 99,100,102,103,104,106,107,108,   // 199
-	109,110,112,114,115,117,119,121,123,125,127,128,129,130,132,   // 204
-	133,135,136,138,139,140,142,144,146,148,150,151,153,154,156,   // 219
-	157,158,159,161,163,164,165,167,168,170,173,175,177,180,184,   // 224
-	186,188,191,194,197,199,201,203,205,207,209,211,213,215,217,   // 239
-	219,221,223,225,227,228,230,232,235,238,240,243,246,249,252,   // 244
-	255
-};
-
-static struct i2c_bl_cmd i2c_bl_init_lp8556_cmd[] = {
-#if defined(CONFIG_LGE_BACKLIGHT_CABC) && 0 /* Always disable CABC for 8.9" panel */
-	{0x01, 0x01|(0x01<<1), 0xff, "Device enable, PWM input and Brightness register (combined before shaper block)"},
-#else
-	{0x01, 0x01|(0x02<<1), 0xff,"Device enable, Brightness register only"},
 #endif
-	{0x16, 0x1f, 0xff, "LED string enable: 0 to 4"},
-	{0xa0, (((int)(17.5/20*4095)))&0xff, 0xff, "Current = 17.499"},
-	{0xa1, (0x0<<7)|(0x03<<4)|(((int)(17.5/20*4095))>>8), 0xff, "Current_Max = 20mA"},
-	{0xa2, 0x20, 0xff, "ISET_EN=0, BOOST_FSET_EN=0, UVLO_EN=1"},
-	{0x9e, 0x20, 0x20, "VBOOST_RANGE=0"},
-	{0xa5, (2<<4)|(0x08<<0), 0x7f,"PS_MODE[2:0] = 1,5 Phase, 5 drivers, PWM_FREQ=0x0F(38,464Hz), 0x08(15,626Hz)"},
-};
-
-static struct i2c_bl_cmd i2c_bl_deinit_lp8556_cmd[] = {
-	{0x01, 0x00, 0xff, "Device enable, Brightness register only"},
-};
-
-static struct i2c_bl_cmd i2c_bl_dump_lp8556_regs[] = {
-	{0x00, 0x00, 0xff, "Brightness Control register"},
-	{0x01, 0x00, 0xff, "Device Control register"},
-	{0x02, 0x00, 0xff, "Fault register"},
-	{0x03, 0x00, 0xff, "Identification register"},
-	{0x04, 0x00, 0xff, "Direct Control register"},
-	{0x16, 0x00, 0xff, "Temp LSB register"},
-	{0x98, 0x00, 0xff, "CFG98 register"},
-	{0x9e, 0x00, 0xff, "CFG9E register"},
-	{0xa0, 0x00, 0xff, "CFG0 register"},
-	{0xa1, 0x00, 0xff, "CFG1 register"},
-	{0xa2, 0x00, 0xff, "CFG2 register"},
-	{0xa3, 0x00, 0xff, "CFG3 register"},
-	{0xa4, 0x00, 0xff, "CFG4 register"},
-	{0xa5, 0x00, 0xff, "CFG5 register"},
-	{0xa6, 0x00, 0xff, "CFG6 register"},
-	{0xa7, 0x00, 0xff, "CFG7 register"},
-	{0xa9, 0x00, 0xff, "CFG9 register"},
-	{0xaa, 0x00, 0xff, "CFGA register"},
-	{0xae, 0x00, 0xff, "CFGE register"},
-	{0xaf, 0x00, 0xff, "CFGF register"},
-};
-
-static struct i2c_bl_cmd i2c_bl_set_get_brightness_lp8556_cmds[] = {
-	{0x00, 0x00, 0xff, "Brightness Control register"},
-};
-
-static struct i2c_bl_platform_data lp8556_i2c_bl_data = {
-	.gpio = PM8921_GPIO_PM_TO_SYS(24),
-	.i2c_addr = 0x2c,
-	.min_brightness = 0x05,
-	.max_brightness = 0xFF,
-	.default_brightness = 0x9C,
-	.factory_brightness = 0x78,
-
-	.init_cmds = i2c_bl_init_lp8556_cmd,
-	.init_cmds_size = ARRAY_SIZE(i2c_bl_init_lp8556_cmd),
-
-	.deinit_cmds = i2c_bl_deinit_lp8556_cmd,
-	.deinit_cmds_size = ARRAY_SIZE(i2c_bl_deinit_lp8556_cmd),
-
-	.dump_regs = i2c_bl_dump_lp8556_regs,
-	.dump_regs_size = ARRAY_SIZE(i2c_bl_dump_lp8556_regs),
-
-	.set_brightness_cmds = i2c_bl_set_get_brightness_lp8556_cmds,
-	.set_brightness_cmds_size = ARRAY_SIZE(i2c_bl_set_get_brightness_lp8556_cmds),
-
-	.get_brightness_cmds = i2c_bl_set_get_brightness_lp8556_cmds,
-	.get_brightness_cmds_size = ARRAY_SIZE(i2c_bl_set_get_brightness_lp8556_cmds),
-
-	.blmap = i2c_bl_mapped_lp8556_value,
-	.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lp8556_value),
-};
-#endif
-
 static struct i2c_board_info msm_i2c_backlight_info[] = {
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
 	{ I2C_BOARD_INFO("i2c_bl", 0x38), .platform_data = &lm3532_i2c_bl_data, },
@@ -1466,7 +1002,7 @@ static struct i2c_board_info msm_i2c_backlight_info[] = {
 static struct i2c_registry apq8064_i2c_backlight_device[] __initdata = {
 
 	{
-		I2C_SURF | I2C_FFA | I2C_RUMI | I2C_SIM | I2C_LIQUID,
+		I2C_FFA,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
 		msm_i2c_backlight_info,
 		ARRAY_SIZE(msm_i2c_backlight_info),
@@ -1475,39 +1011,7 @@ static struct i2c_registry apq8064_i2c_backlight_device[] __initdata = {
 
 void __init register_i2c_backlight_devices(void)
 {
-	u8 mach_mask = 0;
 	int i;
-
-	/* Build the matching 'supported_machs' bitmask */
-	if (machine_is_apq8064_cdp())
-		mach_mask = I2C_SURF;
-	else if (machine_is_apq8064_mtp())
-		mach_mask = I2C_FFA;	
-	else if (machine_is_apq8064_liquid())
-		mach_mask = I2C_LIQUID;
-	else if (machine_is_apq8064_rumi3())
-		mach_mask = I2C_RUMI;
-	else if (machine_is_apq8064_sim())
-		mach_mask = I2C_SIM;
-	else if (machine_is_apq8064_awifi())
-		mach_mask = I2C_FFA;
-	else
-		pr_err("unmatched machine ID in register_i2c_devices\n");
-
-/* LGE_CHANGE_START: ilhwan.ahn@lge.com, 2013.05.27,  For the one-binary */
-#if defined(CONFIG_BACKLIGHT_I2C_BL)
-	if (lge_get_board_revno() == HW_REV_EVB2) {
-		struct i2c_board_info *board_info = msm_i2c_backlight_info;
-		while(board_info<&msm_i2c_backlight_info[ARRAY_SIZE(msm_i2c_backlight_info)]) {
-			if (strcmp(board_info->type, "i2c_bl") == 0) {
-				board_info->addr = lp8556_i2c_bl_data.i2c_addr;
-				board_info->platform_data = &lp8556_i2c_bl_data;
-				break;
-			}
-		}
-	}
-#endif
-/* LGE_CHANGE_END: ilhwan.ahn@lge.com, 2013.05.27,  For the one-binary */
 
 	/* Run the array and install devices as appropriate */
 	for (i = 0; i < ARRAY_SIZE(apq8064_i2c_backlight_device); ++i) {
