@@ -36,8 +36,6 @@ static int __init mipi_lgit_lcd_init(void);
 static bool lgit_lcd_cabc_state(void);
 #endif
 
-#define DSV_ONBST 57
-
 static int check_stable_lcd_on = 1;
 
 static int mipi_stable_lcd_on(struct platform_device *pdev)
@@ -63,38 +61,9 @@ static int mipi_stable_lcd_on(struct platform_device *pdev)
        return ret;
 }
 
-static int lgit_external_dsv_onoff(uint8_t on_off)
-{
-	int ret =0;
-	static int init_done=0;
-
-	if (!init_done) {
-		ret = gpio_request(DSV_ONBST,"DSV_ONBST_en");
-		if (ret) {
-			pr_err("%s: failed to request DSV_ONBST gpio \n", __func__);
-			goto out;
-		}
-		ret = gpio_direction_output(DSV_ONBST, 1);
-		if (ret) {
-			pr_err("%s: failed to set DSV_ONBST direction\n", __func__);
-			goto err_gpio;
-		}
-		init_done = 1;
-	}
-
-	gpio_set_value(DSV_ONBST, on_off);
-	mdelay(20);
-	goto out;
-
-err_gpio:
-	gpio_free(DSV_ONBST);
-out:
-	return ret;
-}
-
 int mipi_lgit_lcd_on(struct platform_device *pdev)
 {
-	int ret = 0;
+	int cnt = 0;
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 	bool cabc_off_state = 1;
 #endif
@@ -109,17 +78,14 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
+	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
+
+	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		mipi_lgit_pdata->power_on_set_1,
 		mipi_lgit_pdata->power_on_set_size_1);
-	if (ret < 0) {
-		pr_err("%s: failed to transmit power_on_set_1 cmds\n", __func__);
-		return ret;
-	}
-	ret = lgit_external_dsv_onoff(1);
-	if (ret < 0) {
-		pr_err("%s: failed to turn on exteranl dsv\n", __func__);
-		return ret;
+	if (cnt < 0)
+		return cnt;
+
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 	cabc_off_state = lgit_lcd_cabc_state();
@@ -127,53 +93,51 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	if (cabc_off_state == 1) {
 		if ((mipi_lgit_pdata->power_on_set_3_noCABC != NULL) &&
 			(mipi_lgit_pdata->power_on_set_size_3_noCABC > 0)) {
-			ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
+			cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 				mipi_lgit_pdata->power_on_set_3_noCABC,
 				mipi_lgit_pdata->power_on_set_size_3_noCABC);
 
-			if (ret < 0)
-				return ret;
+			if (cnt < 0)
+				return cnt;
 			printk(KERN_INFO "[LCD][DEBUG] %s : CABC OFF\n", __func__);
 		}
 	} else {
 		if ((mipi_lgit_pdata->power_on_set_3 != NULL) &&
 			(mipi_lgit_pdata->power_on_set_size_3 > 0)) {
-			ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
+			cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 				mipi_lgit_pdata->power_on_set_3,
 				mipi_lgit_pdata->power_on_set_size_3);
 
-			if (ret < 0)
-				return ret;
+			if (cnt < 0)
+				return cnt;
 
 			printk(KERN_INFO "[LCD][DEBUG] %s : CABC ON\n", __func__);
 		}
 	}
 #endif
-	
 
-	ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
+	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 	mipi_lgit_pdata->power_on_set_2,
 	mipi_lgit_pdata->power_on_set_size_2);
-	if (ret < 0) {
-		pr_err("%s: failed to transmit power_on_set_2 cmds\n", __func__);
-		return ret;
-	}
+	if (cnt < 0)
+		return cnt;
 
 	mipi_dsi_op_mode_config(DSI_VIDEO_MODE);
 	mdp4_overlay_dsi_video_start();
 	mdelay(120);
 //LGE_UPDATE_E hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
 
-	pr_info("%s finished\n", __func__);
+	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
+
 	return 0;
 }
 
 int mipi_lgit_lcd_off(struct platform_device *pdev)
 {
-	int ret = 0;
+	int cnt = 0;
 	struct msm_fb_data_type *mfd;
 	
-	pr_info("%s started\n", __func__);
+	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
 
 	mfd =  platform_get_drvdata(pdev);
 	
@@ -184,23 +148,17 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 		return -EINVAL;
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);//HS mode
-	ret = mipi_dsi_cmds_tx(&lgit_tx_buf,
+	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		mipi_lgit_pdata->power_off_set_1,	
 		mipi_lgit_pdata->power_off_set_size_1);
-	if (ret < 0) {
-		pr_err("%s: failed to transmit power_off_set_1 cmds\n", __func__);
-		return ret;
+	if (cnt < 0) {
+		MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
+		return cnt;
 	}
 
-	ret = lgit_external_dsv_onoff(0);
-	if (ret < 0) {
-		pr_err("%s: failed to turn off exteranl dsv\n", __func__);
-		return ret;
-  	}
-
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
+	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
 
-	pr_info("%s finished\n", __func__);
 	return 0;
 }
 
@@ -246,7 +204,7 @@ static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 		return 0;
 	}
 
-	pr_info("%s start\n", __func__);
+	printk(KERN_INFO "[LCD][DEBUG] %s: mipi lgit lcd probe start\n", __func__);
 
 	msm_fb_add_device(pdev);
 
@@ -294,13 +252,15 @@ int mipi_lgit_device_register(struct msm_panel_info *pinfo,
 	ret = platform_device_add_data(pdev, &lgit_panel_data,
 		sizeof(lgit_panel_data));
 	if (ret) {
-		pr_err("%s: platform_device_add_data failed!\n", __func__);
+		printk(KERN_ERR
+		  "[LCD][DEBUG] %s: platform_device_add_data failed!\n", __func__);
 		goto err_device_put;
 	}
 
 	ret = platform_device_add(pdev);
 	if (ret) {
-		pr_err("%s: platform_device_add_data failed!\n", __func__);
+		printk(KERN_ERR
+		  "[LCD][DEBUG] %s: platform_device_register failed!\n", __func__);
 		goto err_device_put;
 	}
 
