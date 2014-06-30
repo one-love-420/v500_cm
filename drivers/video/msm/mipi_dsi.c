@@ -104,11 +104,7 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	 * Desctiption: change to DSI_CMD_MODE since it needed to
 	 * tx DCS dsiplay off comamnd to panel
 	 */
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_HD_PT)\
-       || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_FHD) \
-       || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
-	/* For power sequence of LGIT Panel.  */
-#else /* QCT Orignial */
+#if !defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
 	mipi_dsi_op_mode_config(DSI_CMD_MODE);
 #endif
 	if (mfd->panel_info.type == MIPI_CMD_PANEL) {
@@ -121,11 +117,7 @@ static int mipi_dsi_off(struct platform_device *pdev)
 		}
 	}
 
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_HD_PT) \
-       || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_FHD) \
-       || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
-	/* For power sequence of LGIT Panel */
-#else /* QCT Original */
+#if !defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
 	ret = panel_next_off(pdev);
 #endif
 
@@ -282,7 +274,10 @@ static int mipi_dsi_on(struct platform_device *pdev)
 		mutex_lock(&mfd->dma->ov_mutex);
 	else
 		down(&mfd->dma->mutex);
-#if defined(CONFIG_MACH_LGE)
+
+#if defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
+	mipi_dsi_op_mode_config(mipi->mode);
+	mdp4_overlay_dsi_video_start();
 	ret = panel_next_on(pdev);
 	if (ret < 0)
 	{
@@ -295,9 +290,6 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	} else {
 		ret = 0;
 	}
-	#if defined(CONFIG_FB_MSM_MIPI_HITACHI_VIDEO_HD_PT)|| defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_FHD) || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
-	mipi_dsi_op_mode_config(mipi->mode);
-	#endif
 #else /*  QCT Original */
 	ret = panel_next_on(pdev);
 
