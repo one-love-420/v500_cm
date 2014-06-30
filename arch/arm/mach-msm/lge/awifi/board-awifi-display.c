@@ -735,9 +735,11 @@ static int mipi_lgit_backlight_level(int level, int max, int min)
 
 /* LGE_CHANGE_START:ilhwan.ahn@lge.com, 2013.05.22, Change the initial sest for AWiFi */
 static char exit_sleep_mode             [2] = {0x11,0x00};
+static char enter_sleep_mode            [2] = {0x10,0x00};
+
 static char display_on                  [2] = {0x29,0x00};
 static char display_off                 [2] = {0x28,0x00};
-static char enter_sleep_mode            [2] = {0x10,0x00};
+
 static char set_address_mode            [2] = {0x36,0x40};
 
 static char p_gamma_r_setting[10] = {0xD0, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
