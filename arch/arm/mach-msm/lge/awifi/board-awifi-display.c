@@ -740,6 +740,13 @@ static char display_off                 [2] = {0x28,0x00};
 static char enter_sleep_mode            [2] = {0x10,0x00};
 static char set_address_mode            [2] = {0x36,0x40};
 
+static char p_gamma_r_setting[10] = {0xD0, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+static char n_gamma_r_setting[10] = {0xD1, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+static char p_gamma_g_setting[10] = {0xD2, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+static char n_gamma_g_setting[10] = {0xD3, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+static char p_gamma_b_setting[10] = {0xD4, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+static char n_gamma_b_setting[10] = {0xD5, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+
 #define PF_16BIT 0x50
 #define PF_18BIT 0x60
 #define PF_24BIT 0x70
@@ -766,6 +773,13 @@ static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(pixel_format),pixel_format},
+
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_r_setting), p_gamma_r_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_r_setting), n_gamma_r_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_g_setting), p_gamma_g_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_g_setting), n_gamma_g_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_b_setting), p_gamma_b_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_b_setting), n_gamma_b_setting},
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
@@ -799,18 +813,19 @@ static struct dsi_cmd_desc lgit_shutdown_set_LD083WU1[] = {
 static struct msm_panel_common_pdata mipi_lgit_pdata_LD083WU1 = {
 	.backlight_level = mipi_lgit_backlight_level,
 	.power_on_set_1 = lgit_power_on_set_1_LD083WU1,
-	.power_on_set_size_1 = ARRAY_SIZE(lgit_power_on_set_1_LD083WU1),
 	.power_on_set_2 = lgit_power_on_set_2_LD083WU1,
-	.power_on_set_size_2 = ARRAY_SIZE(lgit_power_on_set_2_LD083WU1),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
 	.power_on_set_3 = lgit_power_on_set_3_LD083WU1,
-	.power_on_set_size_3 = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1),
 	.power_on_set_3_noCABC = lgit_power_on_set_3_LD083WU1_noCABC,
+
+	.power_on_set_size_1 = ARRAY_SIZE(lgit_power_on_set_1_LD083WU1),
+	.power_on_set_size_2 = ARRAY_SIZE(lgit_power_on_set_2_LD083WU1),
+	.power_on_set_size_3 = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1),
 	.power_on_set_size_3_noCABC = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1_noCABC),
-#endif
+
 	.power_off_set_1 = lgit_power_off_set_LD083WU1,
-	.power_off_set_size_1 = ARRAY_SIZE(lgit_power_off_set_LD083WU1),
 	.power_off_set_2 = lgit_shutdown_set_LD083WU1,
+
+	.power_off_set_size_1 = ARRAY_SIZE(lgit_power_off_set_LD083WU1),
 	.power_off_set_size_2 = ARRAY_SIZE(lgit_shutdown_set_LD083WU1),
 };
 

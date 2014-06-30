@@ -32,7 +32,7 @@ static struct dsi_buf lgit_camera_tx_buf;
 static struct dsi_buf lgit_shutdown_tx_buf;
 
 #ifdef CONFIG_GAMMA_CONTROL
-struct dsi_cmd_desc new_color_vals[33];
+struct dsi_cmd_desc new_color_vals[8];
 #endif
 
 static int __init mipi_lgit_lcd_init(void);
@@ -195,27 +195,27 @@ void update_vals(int type, int array_pos, int val)
 
 	switch(type) {
 		case RED:
-			new_color_vals[5].payload[array_pos] = val;
-			new_color_vals[6].payload[array_pos] = val;
+			new_color_vals[2].payload[array_pos] = val;
+			new_color_vals[3].payload[array_pos] = val;
 			break;
 		case GREEN:
-			new_color_vals[7].payload[array_pos] = val;
-			new_color_vals[8].payload[array_pos] = val;
+			new_color_vals[4].payload[array_pos] = val;
+			new_color_vals[5].payload[array_pos] = val;
 			break;
 		case BLUE:
-			new_color_vals[9].payload[array_pos] = val;
-			new_color_vals[10].payload[array_pos] = val;
+			new_color_vals[6].payload[array_pos] = val;
+			new_color_vals[7].payload[array_pos] = val;
 			break;
 		case CONTRAST:
-			for (i = 5; i <= 10; i++)
+			for (i = 2; i <= 7; i++)
 				new_color_vals[i].payload[type] = val;
 			break;
 		case BRIGHTNESS:
-			for (i = 5; i <= 10; i++)
+			for (i = 2; i <= 7; i++)
 				new_color_vals[i].payload[type] = val;
 			break;
 		case SATURATION:
-			for (i = 5; i <= 10; i++)
+			for (i = 2; i <= 7; i++)
 				new_color_vals[i].payload[type] = val;
 			break;
 		default:

@@ -45,6 +45,7 @@ struct i2c_bl_device {
 	struct i2c_client *client;
 	struct backlight_device *bl_dev;
 	int gpio;
+	int max_current;
 	int min_brightness;
 	int max_brightness;
 	int default_brightness;
