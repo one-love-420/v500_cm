@@ -621,11 +621,11 @@ static ssize_t store_input_boost_freq(struct kobject *kobj, struct attribute *at
 	return count;
 }
 
-tatic struct global_attr input_boost_freq_attr = __ATTR(input_boost_freq, 0644, show_input_boost_freq, store_input_boost_freq);
+static struct global_attr input_boost_freq_attr = __ATTR(input_boost_freq, 0644, show_input_boost_freq, store_input_boost_freq);
 
 static ssize_t show_dynamic_scaling(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", boost_val);
+	return sprintf(buf, "%d\n", dynamic_scaling);
 }
 
 static ssize_t store_dynamic_scaling(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
