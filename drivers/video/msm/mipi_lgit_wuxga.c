@@ -83,7 +83,6 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 		return -EINVAL;
 
 	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
-
 #ifdef CONFIG_GAMMA_CONTROL
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		new_color_vals,
@@ -127,8 +126,8 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 #endif
 
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
-	mipi_lgit_pdata->power_on_set_2,
-	mipi_lgit_pdata->power_on_set_size_2);
+		mipi_lgit_pdata->power_on_set_2,
+		mipi_lgit_pdata->power_on_set_size_2);
 	if (cnt < 0)
 		return cnt;
 
