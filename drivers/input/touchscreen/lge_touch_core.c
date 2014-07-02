@@ -1743,8 +1743,11 @@ static void touch_work_func_a(struct work_struct *work)
 	u8 report_enable = 0;
 	int ret = 0;
 
-	is_touching = true;
-	freq_boosted_time = ktime_to_ms(ktime_get());
+	if (interactive_selected)
+	{
+		is_touching = true;
+		freq_boosted_time = ktime_to_ms(ktime_get());
+	}
     
 #if defined(CONFIG_MACH_APQ8064_GVAR_CMCC)
 	u8 id = 0;
