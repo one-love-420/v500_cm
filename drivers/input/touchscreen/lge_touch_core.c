@@ -30,9 +30,11 @@
 #include <linux/types.h>
 #include <linux/time.h>
 #include <linux/version.h>
-
 #include <asm/atomic.h>
 #include <linux/gpio.h>
+#include <linux/cpufreq.h>
+#include <linux/hotplug.h>
+#include <linux/cpu.h>
 
 #include <linux/input/lge_touch_core.h>
 
@@ -79,32 +81,12 @@ struct lge_touch_attribute {
 	ssize_t (*store)(struct lge_touch_data *ts, const char *buf, size_t count);
 };
 
+/* extern vars */
+bool is_touching;
+u64 freq_boosted_time;
+
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)	\
 struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, _store)
-
-#if defined(CONFIG_LGE_TOUCH_MOUSE)
-#include <linux/input-polldev.h>
-struct lge_touch_data *g_ts;
-static int finger_status = FINGER_RELEASED;
-
-static int touch_orientation = 0;
-////module_param(touch_orientation, int, 0644);
-
-#define LGE__module_param_call(prefix, name, ops, arg, perm, level)	\
-	/* Default value instead of permissions? */			\
-	static int __param_perm_check_##name __attribute__((unused)) =	\
-	BUILD_BUG_ON_ZERO((perm) < 0 || (perm) > 0777 )	\
-	+ BUILD_BUG_ON_ZERO(sizeof(""prefix) > MAX_PARAM_PREFIX_LEN);	\
-	static const char __param_str_##name[] = prefix #name;		\
-	static struct kernel_param __moduleparam_const __param_##name	\
-	__used								\
-    __attribute__ ((unused,__section__ ("__param"),aligned(sizeof(void *)))) \
-	= { __param_str_##name, ops, perm, level, { arg } }
-
-param_check_int(touch_orientation, &(touch_orientation)); 			   \
-LGE__module_param_call(MODULE_PARAM_PREFIX, touch_orientation, &param_ops_int, &touch_orientation, 0666, 0); \
-__MODULE_PARM_TYPE(touch_orientation, int);
-#endif
 
 /* Debug mask value
  * usage: echo [debug_mask] > /sys/module/lge_touch_core/parameters/debug_mask
@@ -1760,6 +1742,10 @@ static void touch_work_func_a(struct work_struct *work)
 			container_of(work, struct lge_touch_data, work);
 	u8 report_enable = 0;
 	int ret = 0;
+
+	is_touching = true;
+	freq_boosted_time = ktime_to_ms(ktime_get());
+    
 #if defined(CONFIG_MACH_APQ8064_GVAR_CMCC)
 	u8 id = 0;
 #endif
