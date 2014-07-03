@@ -33,6 +33,9 @@
 #endif
 
 #define THROTTLE_FREQUENCY 1026000
+static bool core_control_enabled;
+static uint32_t cpus_offlined;
+static DEFINE_MUTEX(core_control_mutex);
 
 struct cpus {
     bool throttling;
@@ -131,9 +134,11 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
     
     if (!wq)
        return -ENOMEM;
-
+	core_control_enabled = 1;
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
 	queue_delayed_work(wq, &check_temp_work, HZ*30);
+
+	register_cpu_notifier(&msm_thermal_cpu_notifier);
 
 	return ret;
 }
