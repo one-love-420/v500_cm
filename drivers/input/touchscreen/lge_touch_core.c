@@ -82,7 +82,8 @@ struct lge_touch_attribute {
 };
 
 /* extern vars */
-struct lge_touch_data *_ts;
+bool is_touching;
+u64 freq_boosted_time;
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)	\
 struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, _store)
@@ -1741,6 +1742,12 @@ static void touch_work_func_a(struct work_struct *work)
 			container_of(work, struct lge_touch_data, work);
 	u8 report_enable = 0;
 	int ret = 0;
+
+	if (interactive_selected)
+	{
+		is_touching = true;
+		freq_boosted_time = ktime_to_ms(ktime_get());
+	}
     
 #if defined(CONFIG_MACH_APQ8064_GVAR_CMCC)
 	u8 id = 0;
