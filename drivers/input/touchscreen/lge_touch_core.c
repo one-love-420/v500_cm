@@ -30,9 +30,12 @@
 #include <linux/types.h>
 #include <linux/time.h>
 #include <linux/version.h>
-
 #include <asm/atomic.h>
 #include <linux/gpio.h>
+#include <linux/cpufreq.h>
+#include <linux/hotplug.h>
+#include <linux/cpu.h>
+#include <linux/syscalls.h>
 
 #include <linux/input/lge_touch_core.h>
 
@@ -78,6 +81,9 @@ struct lge_touch_attribute {
 	ssize_t (*show)(struct lge_touch_data *ts, char *buf);
 	ssize_t (*store)(struct lge_touch_data *ts, const char *buf, size_t count);
 };
+
+/* extern vars */
+struct lge_touch_data *_ts;
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)	\
 struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, _store)
@@ -1750,6 +1756,30 @@ static void touch_work_post_proc(struct lge_touch_data *ts, int post_proc)
 		touch_work_post_proc(ts, post_proc);
 }
 
+#define BOOSTPULSE "/sys/devices/system/cpu/cpufreq/interactive/boostpulse"
+
+static struct boost_mako {
+	int boostpulse_fd;
+} boost = {
+	.boostpulse_fd = -1,
+};
+
+static int boostpulse_open(void)
+{
+	if (boost.boostpulse_fd < 0)
+	{
+		boost.boostpulse_fd = sys_open(BOOSTPULSE, O_WRONLY, 0);
+		
+		if (boost.boostpulse_fd < 0)
+		{
+			pr_info("Error opening %s\n", BOOSTPULSE);
+			return -1;		
+		}
+	}
+
+	return boost.boostpulse_fd;
+}
+
 /* touch_work_func_a
  *
  * HARD_TOUCH_KEY
@@ -1760,6 +1790,19 @@ static void touch_work_func_a(struct work_struct *work)
 			container_of(work, struct lge_touch_data, work);
 	u8 report_enable = 0;
 	int ret = 0;
+	int len;
+
+	if (boostpulse_open() >= 0)
+  	{
+		len = sys_write(boost.boostpulse_fd, "1", sizeof(BOOSTPULSE));
+			
+		if (len < 0)
+		{
+			pr_info("Error writing to %s\n", BOOSTPULSE);			
+		}
+	}
+
+
 #if defined(CONFIG_MACH_APQ8064_GVAR_CMCC)
 	u8 id = 0;
 #endif
@@ -3819,7 +3862,7 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	struct lge_touch_data *ts;
 	int ret = 0;
 	int one_sec = 0;
-
+	
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
@@ -4072,6 +4115,8 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 #if defined(CONFIG_LGE_TOUCH_MOUSE)
 	LGE_touch_mouse_init();
 #endif
+
+	_ts = ts;
 
 	return 0;
 
