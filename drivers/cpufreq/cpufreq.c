@@ -33,6 +33,7 @@
 #include <linux/tick.h>
 
 #include <trace/events/power.h>
+#include <trace/events/mpdcvs_trace.h>
 
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
