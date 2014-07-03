@@ -246,14 +246,16 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 		if (stats.counter < t->max_load_counter)
 			++stats.counter;
 
-		cpu_revive(cur_load);
+		if (stats.online_cpus < NUM_POSSIBLE_CPUS)
+			cpu_revive(cur_load);
 	}
 	else
 	{
 		if (stats.counter)
 			--stats.counter;
 
-		cpu_smash();
+		if (stats.online_cpus > 2)
+			cpu_smash();
     }
 
 reschedule:
