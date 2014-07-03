@@ -68,13 +68,10 @@ static spinlock_t down_cpumask_lock;
 static struct mutex set_speed_lock;
 
 /* Hi speed to bump to from lo speed when load burst (default max) */
-#define DEFAULT_HISPEED_FREQ 1026000
+#define DEFAULT_HISPEED_FREQ 702000
 static u64 hispeed_freq;
 
-/* Bump the CPU to hispeed_freq if its load is >= 50% */
-#define HISPEED_FREQ_LOAD 50
-
-/* If the CPU load is >= 85% it goes to max frequency */
+/* Go to hi speed when CPU load at or above this value. */
 #define DEFAULT_UP_THRESHOLD 85
 static unsigned long up_threshold;
 
@@ -102,14 +99,8 @@ static unsigned long above_hispeed_delay_val;
  * touched. input_boost needs to be enabled.
  */
 
-#define DEFAULT_INPUT_BOOST_FREQ 1512000
+#define DEFAULT_INPUT_BOOST_FREQ 1188000
 static int input_boost_freq;
-
-/*
- * Duration of the touch boost
- */
-#define DEFAULT_INPUT_BOOST_FREQ_DURATION 1000
-static int input_boost_freq_duration;
 
 /*
  * dynamic tunables scaling flag linked to the
@@ -247,16 +238,10 @@ static void cpufreq_interactive_timer(unsigned long data)
 	 */
 	if (load_since_change > cpu_load)
 		cpu_load = load_since_change;
-
-	/* Lets divide by up_threshold so that the device uses more freqs */
-	new_freq = pcpu->policy->max * cpu_load / up_threshold;
-
-	if (cpu_load >= up_threshold)
+	if (cpu_load > up_threshold)
 		new_freq = pcpu->policy->max;
-	/* if the cpu load is >= 50% lets bump the cpu to hispeed_freq */
-	else if (cpu_load >= HISPEED_FREQ_LOAD && new_freq < hispeed_freq)
-		new_freq = hispeed_freq;
-
+	else
+		new_freq = pcpu->policy->max * cpu_load / 100;
 	if (new_freq <= hispeed_freq)
 		pcpu->hispeed_validate_time = pcpu->timer_run_time;
 
@@ -275,10 +260,10 @@ static void cpufreq_interactive_timer(unsigned long data)
 	 */
 	if (is_touching && pcpu->policy->cpu < 2)
 	{
-		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= input_boost_freq_duration)
+		if (ktime_to_ms(ktime_get()) - freq_boosted_time >= 1000)
 			is_touching = false;
         
-		else if (new_freq < input_boost_freq || pcpu->policy->cur < input_boost_freq)
+		if (new_freq < input_boost_freq || pcpu->policy->cur < input_boost_freq)
 			new_freq = input_boost_freq;
 	}
 
@@ -638,27 +623,6 @@ static ssize_t store_input_boost_freq(struct kobject *kobj, struct attribute *at
 
 static struct global_attr input_boost_freq_attr = __ATTR(input_boost_freq, 0644, show_input_boost_freq, store_input_boost_freq);
 
-static ssize_t show_input_boost_freq_duration(struct kobject *kobj, struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", input_boost_freq_duration);
-}
-
-static ssize_t store_input_boost_freq_duration(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
-{
-	int ret;
-	unsigned long val;
-    
-	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-    
-	input_boost_freq_duration = val;
-    
-	return count;
-}
-
-static struct global_attr input_boost_freq_duration_attr = __ATTR(input_boost_freq_duration, 0644, show_input_boost_freq_duration, store_input_boost_freq_duration);
-
 static ssize_t show_dynamic_scaling(struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	return sprintf(buf, "%d\n", dynamic_scaling);
@@ -686,7 +650,6 @@ static struct attribute *interactive_attributes[] = {
 	&min_sample_time_attr.attr,
 	&timer_rate_attr.attr,
 	&input_boost_freq_attr.attr,
-	&input_boost_freq_duration_attr.attr,
 	&dynamic_scaling_attr.attr,
 	&up_threshold_attr.attr,
 	NULL,
@@ -745,6 +708,9 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy, unsigned 
 
 	switch (event) {
 	case CPUFREQ_GOV_START:
+		if (!cpu_online(policy->cpu))
+			return -EINVAL;
+
 		freq_table =
 			cpufreq_frequency_get_table(policy->cpu);
 
@@ -846,7 +812,6 @@ static int __init cpufreq_interactive_init(void)
 
 	hispeed_freq = DEFAULT_HISPEED_FREQ;
 	input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
-	input_boost_freq_duration = DEFAULT_INPUT_BOOST_FREQ_DURATION;
 
 	/* Initalize per-cpu timers */
 	for_each_possible_cpu(i) {
