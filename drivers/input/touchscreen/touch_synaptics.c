@@ -55,12 +55,12 @@
  */
 #define RMI_DEVICE_CONTROL				0x01
 #define TOUCHPAD_SENSORS				0x11
-#define CAPACITIVE_BUTTON_SENSORS			0x1A
-#define GPIO_LEDS					0x30
-#define LEDS						0x31
+#define CAPACITIVE_BUTTON_SENSORS		0x1A
+#define GPIO_LEDS						0x30
+#define LEDS							0x31
 #define ANALOG_CONTROL					0x54
-#define TIMER						0x32
-#define FLASH_MEMORY_MANAGEMENT				0x34
+#define TIMER							0x32
+#define FLASH_MEMORY_MANAGEMENT			0x34
 #define AUXILIARY_ADC					0x36
 
 /* Register Map & Register bit mask
@@ -361,41 +361,45 @@ int synaptics_ts_get_data(struct i2c_client *client, struct touch_data* data)
 				goto err_synaptics_getdata;
 			}
 
-			for (id = 0; id < ts->pdata->caps->max_id; id++) {
-			switch (((finger_status >> (id*2)) & 0x3)) {
-			case FINGER_STATE_PRESENT_VALID:
-				data[id].state = ABS_PRESS;
-				data[id].x_position = TS_SNTS_GET_X_POSITION(
-					ts->ts_data.finger.finger_reg[id][REG_X_POSITION],
-					ts->ts_data.finger.finger_reg[id][REG_YX_POSITION]);
-				data[id].y_position = TS_SNTS_GET_Y_POSITION(ts->ts_data.finger.finger_reg[id][REG_Y_POSITION], ts->ts_data.finger.finger_reg[id][REG_YX_POSITION]);
-				data[id].width_major = TS_SNTS_GET_WIDTH_MAJOR(ts->ts_data.finger.finger_reg[id][REG_WY_WX]);
-				data[id].width_minor = TS_SNTS_GET_WIDTH_MINOR(ts->ts_data.finger.finger_reg[id][REG_WY_WX]);
-				data[id].tool_type = MT_TOOL_FINGER;
-				data[id].width_orientation = TS_SNTS_GET_ORIENTATION(ts->ts_data.finger.finger_reg[id][REG_WY_WX]);
-				data[id].pressure = TS_SNTS_GET_PRESSURE(ts->ts_data.finger.finger_reg[id][REG_Z]);
-
-				if (unlikely(touch_debug_mask & DEBUG_GET_DATA))
-					TOUCH_INFO_MSG("[%d] pos(%4d,%4d) w_m[%2d] w_n[%2d] w_o[%2d] p[%2d]\n",
-						id,
-						data[id].x_position,
-						data[id].y_position,
-						data[id].width_major,
-						data[id].width_minor,
-						data[id].width_orientation,
-						data[id].pressure);
-				(*total_num)++;
-				break;
-
-			case FINGER_STATE_NO_PRESENT:
-				if (data[id].state == ABS_PRESS)
-					data[id].state = ABS_RELEASE;
-				break;
-
-			default:
-				/*                                     */
-				break;
+			data->curr_data[finger_index].id = finger_index;
+//2013-04-26 goensoo.kim@lge.com	[TEMP PATCH] Adjust touch axis for awifi EVB [START]			
+#ifdef CONFIG_MACH_APQ8064_AWIFI
+						data->curr_data[finger_index].x_position =
+							TS_SNTS_GET_X_POSITION(ts->ts_data.finger.finger_reg[finger_index][REG_Y_POSITION],
+												   ts->ts_data.finger.finger_reg[finger_index][REG_YX_POSITION]);
+						data->curr_data[finger_index].y_position =
+							2160 - TS_SNTS_GET_Y_POSITION(ts->ts_data.finger.finger_reg[finger_index][REG_X_POSITION],
+												   ts->ts_data.finger.finger_reg[finger_index][REG_YX_POSITION]);
+#else			
+						data->curr_data[finger_index].x_position =
+							TS_SNTS_GET_X_POSITION(ts->ts_data.finger.finger_reg[finger_index][REG_X_POSITION],
+												   ts->ts_data.finger.finger_reg[finger_index][REG_YX_POSITION]);
+						data->curr_data[finger_index].y_position =
+							TS_SNTS_GET_Y_POSITION(ts->ts_data.finger.finger_reg[finger_index][REG_Y_POSITION],
+												   ts->ts_data.finger.finger_reg[finger_index][REG_YX_POSITION]);
+#endif
+//2013-04-26 goensoo.kim@lge.com	[TEMP PATCH] Adjust touch axis for awifi EVB [END]
+			data->curr_data[finger_index].width_major = TS_SNTS_GET_WIDTH_MAJOR(ts->ts_data.finger.finger_reg[finger_index][REG_WY_WX]);
+			data->curr_data[finger_index].width_minor = TS_SNTS_GET_WIDTH_MINOR(ts->ts_data.finger.finger_reg[finger_index][REG_WY_WX]);
+			data->curr_data[finger_index].width_orientation = TS_SNTS_GET_ORIENTATION(ts->ts_data.finger.finger_reg[finger_index][REG_WY_WX]);
+			data->curr_data[finger_index].pressure = TS_SNTS_GET_PRESSURE(ts->ts_data.finger.finger_reg[finger_index][REG_Z]);
+			data->curr_data[finger_index].status = FINGER_PRESSED;
+#ifdef CUST_G_TOUCH
+			if(ts->pdata->role->ghost_detection_enable) {
+				if(data->curr_data[finger_index].pressure == 0) pressure_zero = 1;
 			}
+#endif
+
+#if defined(CONFIG_LGE_TOUCH_MOUSE)
+			msleep(2);
+#endif
+			if (unlikely(touch_debug_mask & DEBUG_GET_DATA))
+				TOUCH_INFO_MSG("<%d> pos(%4d,%4d) w_m[%2d] w_n[%2d] w_o[%2d] p[%2d]\n",
+								finger_index, data->curr_data[finger_index].x_position, data->curr_data[finger_index].y_position,
+								data->curr_data[finger_index].width_major, data->curr_data[finger_index].width_minor,
+								data->curr_data[finger_index].width_orientation, data->curr_data[finger_index].pressure);
+
+			index++;
 		}
 		data->total_num = index;
 		if (unlikely(touch_debug_mask & DEBUG_GET_DATA))
