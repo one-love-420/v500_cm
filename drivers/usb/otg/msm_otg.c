@@ -2400,9 +2400,6 @@ static int otg_gender_is_connected(void);
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT1188S
 extern void trigger_usb_state_from_otg(int usb_type);
 #endif
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4
-extern void trigger_baseline_state_machine(int usb_type);
-#endif
 static void msm_otg_sm_work(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg, sm_work);
@@ -2538,9 +2535,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 				pr_info("msm_otg: detected charger type=%d\n",motg->chg_type);
 				switch (motg->chg_type) {
 				case USB_DCP_CHARGER:
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4
-             		trigger_baseline_state_machine(USB_DCP_CHARGER);
-#endif
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT1188S
 					trigger_usb_state_from_otg(USB_DCP_CHARGER);
 #endif
@@ -2567,9 +2561,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 					msm_otg_start_peripheral(otg, 1);
 					otg->phy->state =
 						OTG_STATE_B_PERIPHERAL;
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4
-                    trigger_baseline_state_machine(USB_CDP_CHARGER);
-#endif
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT1188S
 					trigger_usb_state_from_otg(USB_CDP_CHARGER);
 #endif
@@ -2585,9 +2576,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 #ifdef CONFIG_LGE_PM
 					msm_otg_notify_charger(motg,
 							IDEV_CHG_MIN);
-#endif
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4
-                    trigger_baseline_state_machine(USB_SDP_CHARGER);
 #endif
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT1188S
 					trigger_usb_state_from_otg(USB_SDP_CHARGER);
@@ -2624,9 +2612,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 			cancel_delayed_work_sync(&motg->check_ta_work);
 			motg->chg_state = USB_CHG_STATE_UNDEFINED;
 			motg->chg_type = USB_INVALID_CHARGER;
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4
-            trigger_baseline_state_machine(0);
-#endif
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT1188S
             trigger_usb_state_from_otg(USB_INVALID_CHARGER);
 #endif
