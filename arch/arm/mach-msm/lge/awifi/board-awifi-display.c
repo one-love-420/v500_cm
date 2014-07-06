@@ -755,20 +755,15 @@ static char n_gamma_b_setting[10] = {0xD5, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0
 static char pixel_format		[2] = {0x3A, PF_24BIT};
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
-/* Enable CABC block */
+/*                   */
 static char cabc_enable_LD083WU1	[2] = {0xb9, 0x01};
 
-/* Disable CABC block */
+/*                    */
 static char cabc_disable_LD083WU1	[2] = {0xb9, 0x00};
 
-/* Set PWM duty */
+/*              */
 static char set_pwm_duty_LD083WU1	[2] = {0xbb, 0xff};
-
-/* Enable CE algorithm */
-//static char ce_enable_LD083WU1		[2] = {0xb8, 0x01};
-
-/* Disable CE algorithm */
-//static char ce_disable_LD083WU1		[2] = {0xb8, 0x00};
+                                                  
 #endif
 
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
@@ -776,12 +771,6 @@ static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(pixel_format),pixel_format},
 
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_r_setting), p_gamma_r_setting},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_r_setting), n_gamma_r_setting},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_g_setting), p_gamma_g_setting},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_g_setting), n_gamma_g_setting},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_b_setting), p_gamma_b_setting},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_b_setting), n_gamma_b_setting},
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
@@ -793,6 +782,13 @@ static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
 static struct dsi_cmd_desc lgit_power_on_set_3_LD083WU1[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pwm_duty_LD083WU1),set_pwm_duty_LD083WU1},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_enable_LD083WU1),cabc_enable_LD083WU1},
+
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_r_setting), p_gamma_r_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_r_setting), n_gamma_r_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_g_setting), p_gamma_g_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_g_setting), n_gamma_g_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_b_setting), p_gamma_b_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_b_setting), n_gamma_b_setting},
 	//{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(ce_enable_LD083WU1),ce_enable_LD083WU1},
 };
 
