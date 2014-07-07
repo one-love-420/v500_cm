@@ -18,6 +18,7 @@
 #include <linux/spinlock.h>
 #include <mach/socinfo.h>
 #include <mach/scm.h>
+#include <linux/module.h>
 
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
@@ -25,6 +26,7 @@
 
 #define TZ_GOVERNOR_PERFORMANCE 0
 #define TZ_GOVERNOR_ONDEMAND    1
+#define TZ_GOVERNOR_SIMPLE	2
 
 struct tz_priv {
 	int governor;
@@ -45,6 +47,7 @@ spinlock_t tz_lock;
 #define TZ_UPDATE_ID		0x4
 #define TZ_INIT_ID		0x6
 
+#if 0
 /* Trap into the TrustZone, and call funcs there. */
 static int __secure_tz_entry2(u32 cmd, u32 val1, u32 val2)
 {
@@ -69,6 +72,7 @@ static int __secure_tz_entry3(u32 cmd, u32 val1, u32 val2,
 	spin_unlock(&tz_lock);
 	return ret;
 }
+#endif
 
 static ssize_t tz_governor_show(struct kgsl_device *device,
 				struct kgsl_pwrscale *pwrscale,
@@ -79,6 +83,8 @@ static ssize_t tz_governor_show(struct kgsl_device *device,
 
 	if (priv->governor == TZ_GOVERNOR_ONDEMAND)
 		ret = snprintf(buf, 10, "ondemand\n");
+	else if (priv->governor == TZ_GOVERNOR_SIMPLE)
+		ret = snprintf(buf, 8, "simple\n");	
 	else
 		ret = snprintf(buf, 13, "performance\n");
 
@@ -102,6 +108,8 @@ static ssize_t tz_governor_store(struct kgsl_device *device,
 
 	if (!strncmp(str, "ondemand", 8))
 		priv->governor = TZ_GOVERNOR_ONDEMAND;
+	else if (!strncmp(str, "simple", 6))
+		priv->governor = TZ_GOVERNOR_SIMPLE;	
 	else if (!strncmp(str, "performance", 11))
 		priv->governor = TZ_GOVERNOR_PERFORMANCE;
 
@@ -136,6 +144,49 @@ static void tz_wake(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 					device->pwrctrl.default_pwrlevel);
 }
 
+#define HISTORY_SIZE 10
+
+static int ramp_up_threshold = 6500;
+module_param_named(simple_ramp_threshold, ramp_up_threshold, int, 0664);
+
+static unsigned int history[HISTORY_SIZE] = {0};
+static unsigned int counter = 0;
+
+static int simple_governor(struct kgsl_device *device, int idle_stat)
+{
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
+	int i;
+	unsigned int total = 0;
+    
+	history[counter] = idle_stat;
+    
+	for (i = 0; i < HISTORY_SIZE; i++)
+		total += history[i];
+    
+	total = total/HISTORY_SIZE;
+    
+	if (++counter == 10)
+		counter = 0;
+    
+	/* it's currently busy */
+	if (total < ramp_up_threshold)
+	{
+		if ((pwr->active_pwrlevel > 0) &&
+			(pwr->active_pwrlevel <= (pwr->num_pwrlevels - 1)))
+        /* bump up to next pwrlevel */
+			return -1;
+	}
+	/* idle case */
+	else
+	{
+		if ((pwr->active_pwrlevel >= 0) &&
+			(pwr->active_pwrlevel < (pwr->num_pwrlevels - 1)))
+			return 1;
+	}
+    
+	return 0;
+}
+
 static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 {
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
@@ -167,7 +218,7 @@ static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	} else if (priv->idle_dcvs) {
 		idle = priv->bin.total_time - priv->bin.busy_time;
 		idle = (idle > 0) ? idle : 0;
-		val = __secure_tz_entry2(TZ_UPDATE_ID, idle, device->id);
+		val = simple_governor(device, idle);
 	} else {
 		if (pwr->step_mul > 1)
 			val = __secure_tz_entry3(TZ_UPDATE_ID,
@@ -203,7 +254,12 @@ static void tz_sleep(struct kgsl_device *device,
 {
 	struct tz_priv *priv = pwrscale->priv;
 
-	__secure_tz_entry2(TZ_RESET_ID, 0, 0);
+    /*
+     * Why in the hell were we calling a secure_tz func sleeping the device
+     * at 320MHz on the GPU? Makes no sense to me. Lets change the pwrlevel
+     * directly and sleep at its lowest frequency 128MHz.
+     */
+	kgsl_pwrctrl_pwrlevel_change(device, 3);
 	priv->bin.total_time = 0;
 	priv->bin.busy_time = 0;
 }
@@ -220,7 +276,7 @@ static int tz_init(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	if (pwrscale->priv == NULL)
 		return -ENOMEM;
 	priv->idle_dcvs = 0;
-	priv->governor = TZ_GOVERNOR_ONDEMAND;
+	priv->governor = TZ_GOVERNOR_SIMPLE;
 	spin_lock_init(&tz_lock);
 	kgsl_pwrscale_policy_add_files(device, pwrscale, &tz_attr_group);
 	for (i = 0; i < pwr->num_pwrlevels - 1; i++) {
