@@ -23,6 +23,7 @@
 #include <linux/cpu.h>
 #include <linux/regulator/consumer.h>
 #include <linux/iopoll.h>
+#include <linux/module.h> 
 
 #include <asm/mach-types.h>
 #include <asm/cpu.h>
@@ -55,6 +56,9 @@ int limit_cpufreq = 0;
 
 static DEFINE_MUTEX(driver_lock);
 static DEFINE_SPINLOCK(l2_lock);
+
+char *cpu_type = "UNKNOWN";
+module_param(cpu_type, charp, 0755);
 
 static struct drv_data drv;
 
@@ -931,53 +935,60 @@ static void __init bus_init(const struct l2_level *l2_level)
 		dev_err(drv.dev, "initial bandwidth req failed (%d)\n", ret);
 }
 
-#ifdef CONFIG_CPU_VOLTAGE_TABLE
+#ifdef CONFIG_USERSPACE_VOLTAGE_CONTROL
 
-#define HFPLL_MIN_VDD		 800000
-#define HFPLL_MAX_VDD		1350000
+#define MAX_VDD 1300
+#define MIN_VDD 700
 
-ssize_t acpuclk_get_vdd_levels_str(char *buf) {
+ssize_t acpuclk_get_vdd_levels_str(char *buf) 
+{
 
 	int i, len = 0;
 
 	if (buf) {
-		mutex_lock(&driver_lock);
-
 		for (i = 0; drv.acpu_freq_tbl[i].speed.khz; i++) {
-			/* updated to use uv required by 8x60 architecture - faux123 */
-			len += sprintf(buf + len, "%8lu: %8d\n", drv.acpu_freq_tbl[i].speed.khz,
-				drv.acpu_freq_tbl[i].vdd_core );
+			 if (drv.acpu_freq_tbl[i].use_for_scaling) {
+                len += sprintf(buf + len, "%lumhz: %i mV\n",
+                           drv.acpu_freq_tbl[i].speed.khz/1000,
+                           drv.acpu_freq_tbl[i].vdd_core/1000 );
+            }
 		}
-
-		mutex_unlock(&driver_lock);
 	}
 	return len;
 }
 
-/* updated to use uv required by 8x60 architecture - faux123 */
-void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
-
+ssize_t acpuclk_set_vdd(char *buf) 
+{
+	unsigned int cur_volt;
+	char count[10];
 	int i;
-	unsigned int new_vdd_uv;
+    int ret = 0;
 
-	mutex_lock(&driver_lock);
-
-	for (i = 0; drv.acpu_freq_tbl[i].speed.khz; i++) {
-		if (khz == 0)
-			new_vdd_uv = min(max((unsigned int)(drv.acpu_freq_tbl[i].vdd_core + vdd_uv),
-				(unsigned int)HFPLL_MIN_VDD), (unsigned int)HFPLL_MAX_VDD);
-		else if ( drv.acpu_freq_tbl[i].speed.khz == khz)
-			new_vdd_uv = min(max((unsigned int)vdd_uv,
-				(unsigned int)HFPLL_MIN_VDD), (unsigned int)HFPLL_MAX_VDD);
-		else 
-			continue;
-
-		drv.acpu_freq_tbl[i].vdd_core = new_vdd_uv;
+	if (!buf)
+		return -EINVAL;
+		
+	for (i = 0; i < drv.acpu_freq_tbl[i].speed.khz; i++) {
+        if (drv.acpu_freq_tbl[i].use_for_scaling) {
+            ret = sscanf(buf, "%d", &cur_volt);
+        
+           if (ret != 1)
+                return -EINVAL;
+        
+            if (cur_volt > MAX_VDD) {
+                cur_volt = MAX_VDD;
+            } else if (cur_volt < MIN_VDD) {
+                cur_volt = MIN_VDD;
+            }
+        
+            drv.acpu_freq_tbl[i].vdd_core = cur_volt*1000;
+                
+            ret = sscanf(buf, "%s", count);
+            buf += (strlen(count)+1);
+        }
 	}
-	pr_warn("faux123: user voltage table modified!\n");
-	mutex_unlock(&driver_lock);
+	return ret;
 }
-#endif	/* CONFIG_CPU_VOTALGE_TABLE */
+#endif
 
 #ifdef CONFIG_CPU_FREQ_MSM
 static struct cpufreq_frequency_table freq_table[NR_CPUS][35];
@@ -1167,7 +1178,15 @@ static struct pvs_table * __init select_freq_plan(
 
 	if (bin.pvs_valid) {
 		drv.pvs_bin = bin.pvs;
-		dev_info(drv.dev, "ACPU PVS: %d\n", drv.pvs_bin);
+	if (drv.pvs_bin == 1)
+            cpu_type = "SLOW";
+        else if (drv.pvs_bin == 2)
+            cpu_type = "NOMINAL";
+        else if (drv.pvs_bin == 3)
+            cpu_type = "FAST";
+        else if (drv.pvs_bin == 4)
+            cpu_type = "FASTEST";
+		dev_info(drv.dev, "ACPU PVS: %s\n", cpu_type);
 	} else {
 		drv.pvs_bin = 0;
 		dev_warn(drv.dev, "ACPU PVS: Defaulting to %d\n",
