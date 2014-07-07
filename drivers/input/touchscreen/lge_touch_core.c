@@ -31,6 +31,10 @@
 #include <linux/version.h>
 #include <linux/atomic.h>
 #include <linux/gpio.h>
+#include <linux/cpufreq.h>
+#include <linux/hotplug.h>
+#include <linux/cpu.h>
+#include <linux/syscalls.h>
 
 #include <linux/input/lge_touch_core.h>
 
@@ -56,6 +60,9 @@ struct lge_touch_attribute {
 static int is_pressure;
 static int is_width_major;
 static int is_width_minor;
+
+/* extern vars */
+struct lge_touch_data *_ts;
 
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)               \
 	struct lge_touch_attribute lge_touch_attr_##_name =       \
@@ -808,6 +815,30 @@ static void touch_input_report(struct lge_touch_data *ts)
 	input_sync(ts->input_dev);
 }
 
+#define BOOSTPULSE "/sys/devices/system/cpu/cpufreq/interactive/boostpulse"
+
+static struct boost_mako {
+	int boostpulse_fd;
+} boost = {
+	.boostpulse_fd = -1,
+};
+
+static int boostpulse_open(void)
+{
+	if (boost.boostpulse_fd < 0)
+	{
+		boost.boostpulse_fd = sys_open(BOOSTPULSE, O_WRONLY, 0);
+		
+		if (boost.boostpulse_fd < 0)
+		{
+			pr_info("Error opening %s\n", BOOSTPULSE);
+			return -1;		
+		}
+	}
+
+	return boost.boostpulse_fd;
+}
+
 /*
  * Touch work function
  */
@@ -818,6 +849,17 @@ static void touch_work_func(struct work_struct *work)
 	int int_pin = 0;
 	int next_work = 0;
 	int ret;
+	int len;
+
+	if (boostpulse_open() >= 0)
+  	{
+		len = sys_write(boost.boostpulse_fd, "1", sizeof(BOOSTPULSE));
+			
+		if (len < 0)
+		{
+			pr_info("Error writing to %s\n", BOOSTPULSE);			
+		}
+	}
 
 	atomic_dec(&ts->next_work);
 	ts->ts_data.total_num = 0;
@@ -1951,6 +1993,8 @@ static int touch_probe(struct i2c_client *client,
 #ifdef CONFIG_TOUCHSCREEN_CHARGER_NOTIFY
 	touch_psy_init(ts);
 #endif
+
+	_ts = ts;
 
 	return 0;
 

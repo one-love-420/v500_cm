@@ -348,9 +348,9 @@ int g_kcal_r = 248;
 int g_kcal_g = 248;
 int g_kcal_b = 255;
 #else
-int g_kcal_r = 255;
-int g_kcal_g = 255;
-int g_kcal_b = 255;
+int g_kcal_r = 248; //255
+int g_kcal_g = 248; //255
+int g_kcal_b = 253; //255
 #endif
 static int __init display_kcal_setup(char *kcal)
 {
