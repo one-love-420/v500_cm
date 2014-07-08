@@ -913,28 +913,6 @@ void __init apq8064_init_fb(void)
  */
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
-#if 0
-static char i2c_bl_mapped_lm3532_value[256] = {
-	  119,119,119,119,119,119,119,119,124,124,124,124,124,124,124,
-	124,124,124,124,124,124,124,128,128,128,128,128,128,128,128,
-	128,128,128,128,128,131,131,131,131,131,131,131,135,135,138,
-	138,141,141,143,143,146,146,148,148,151,151,151,153,153,153,
-	153,155,155,155,155,157,157,159,159,159,161,161,162,162,162,
-	164,164,165,165,166,166,168,168,168,170,170,171,171,172,172,
-	173,173,174,174,176,176,177,178,179,180,180,181,181,182,183,
-	183,184,184,185,185,186,186,187,187,188,188,189,189,189,190,
-	190,190,191,191,192,193,193,194,194,195,195,196,197,197,198,
-	198,199,200,201,201,202,202,203,203,204,204,205,206,206,207,
-	208,209,210,211,212,213,214,215,215,215,215,216,216,216,217,
-	217,218,218,219,219,220,220,220,221,221,222,222,222,223,223,
-	224,224,225,225,226,226,227,227,228,228,228,229,229,230,230,
-	231,232,233,233,233,234,234,235,235,236,236,236,237,237,237,
-	238,238,239,239,240,240,241,241,242,242,243,243,243,244,244,
-	244,245,245,245,246,246,246,247,247,248,248,248,249,249,249,
-	250,250,250,251,251,251,252,252,253,253,253,254,254,254,254,
-	255,
-};
-#endif
 
 static struct i2c_bl_cmd i2c_bl_init_lm3532_cmd[] = {
 	{0x10, 0x00, 0xff, "ILED1, ILED2, and ILED3 is controlled by Control A PWM and Control A Brightness Registers"},
@@ -979,7 +957,7 @@ static struct i2c_bl_cmd i2c_bl_set_get_brightness_lm3532_cmds[] = {
 static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.gpio = PM8921_GPIO_PM_TO_SYS(24),
 	.i2c_addr = 0x38,
-	.min_brightness = 0x77,
+	.min_brightness = 0x7D,
 	.max_brightness = 0xFF,
 	.default_brightness = 0x9C,
 	.factory_brightness = 0x78,
@@ -998,9 +976,6 @@ static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 
 	.get_brightness_cmds = i2c_bl_set_get_brightness_lm3532_cmds,
 	.get_brightness_cmds_size = ARRAY_SIZE(i2c_bl_set_get_brightness_lm3532_cmds),
-
-	//.blmap = i2c_bl_mapped_lm3532_value,
-	//.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lm3532_value),
 };
 
 #endif
