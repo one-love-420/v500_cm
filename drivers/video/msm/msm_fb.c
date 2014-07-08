@@ -973,8 +973,8 @@ static int default_bl_value = 164;
 static int bl_level_old = 0xF0;
 static int default_bl_value = 164;
 #elif defined (CONFIG_BACKLIGHT_I2C_BL)
-static int bl_level_old = 0xF0;
-static int default_bl_value = 147;
+static int bl_level_old	= 0xF0;
+static int default_bl_value = 164;
 #else /* QCT Original */
 //static int bl_level_old; QCT Oriainal
 static int bl_level_old = 0xF0;

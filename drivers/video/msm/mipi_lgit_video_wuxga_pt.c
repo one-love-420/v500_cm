@@ -162,7 +162,7 @@ static int __init mipi_video_lgit_wuxga_pt_init(void)
 	pinfo.lcdc.underflow_clr = 0x00;   /* white */
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.bl_max = 0xFF;
-	pinfo.bl_min = 0x05;
+	pinfo.bl_min = 0x77;
 	pinfo.fb_num = 2;
 
 	pinfo.mipi.mode = DSI_VIDEO_MODE;

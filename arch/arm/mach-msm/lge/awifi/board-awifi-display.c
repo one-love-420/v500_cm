@@ -734,25 +734,19 @@ static int mipi_lgit_backlight_level(int level, int max, int min)
 }
 
 /* LGE_CHANGE_START:ilhwan.ahn@lge.com, 2013.05.22, Change the initial sest for AWiFi */
-static char exit_sleep_mode             [2] = {0x11,0x00};
-static char enter_sleep_mode            [2] = {0x10,0x00};
+static char exit_sleep_mode             [2] = {0x11, 0x00};
+static char enter_sleep_mode            [2] = {0x10, 0x00};
 
-static char display_on                  [2] = {0x29,0x00};
-static char display_off                 [2] = {0x28,0x00};
+static char display_on                  [2] = {0x29, 0x00};
+static char display_off                 [2] = {0x28, 0x00};
 
-static char set_address_mode            [2] = {0x36,0x40};
-
-static char p_gamma_r_setting[10] = {0xD0, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
-static char n_gamma_r_setting[10] = {0xD1, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
-static char p_gamma_g_setting[10] = {0xD2, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
-static char n_gamma_g_setting[10] = {0xD3, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
-static char p_gamma_b_setting[10] = {0xD4, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
-static char n_gamma_b_setting[10] = {0xD5, 0x72, 0x15, 0x76, 0x00, 0x00, 0x00, 0x50, 0x30, 0x02};
+static char set_address_mode            [2] = {0x36, 0x40};
+static char set_gamma_curve		[2] = {0x26, 0x01};
 
 #define PF_16BIT 0x50
 #define PF_18BIT 0x60
 #define PF_24BIT 0x70
-static char pixel_format		[2] = {0x3A, PF_24BIT};
+static char set_pixel_format		[2] = {0x3A, PF_24BIT};
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 /*                   */
@@ -766,17 +760,18 @@ static char set_pwm_duty_LD083WU1	[2] = {0xbb, 0xff};
                                                   
 #endif
 
+#if 0
+static char gamma_set_a[?] = {0xC8, 
+static char gamma_set_b[?] = {0xC9,
+static char gamma_set_c[?] = {0xCA,
+#endif
+
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(pixel_format),pixel_format},
-
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_r_setting), p_gamma_r_setting},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_r_setting), n_gamma_r_setting},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_g_setting), p_gamma_g_setting},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_g_setting), n_gamma_g_setting},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_b_setting), p_gamma_b_setting},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_b_setting), n_gamma_b_setting},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
+	
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
@@ -918,6 +913,7 @@ void __init apq8064_init_fb(void)
  */
 
 #if defined(CONFIG_BACKLIGHT_I2C_BL)
+#if 0
 static char i2c_bl_mapped_lm3532_value[256] = {
 	  119,119,119,119,119,119,119,119,124,124,124,124,124,124,124,
 	124,124,124,124,124,124,124,128,128,128,128,128,128,128,128,
@@ -938,6 +934,7 @@ static char i2c_bl_mapped_lm3532_value[256] = {
 	250,250,250,251,251,251,252,252,253,253,253,254,254,254,254,
 	255,
 };
+#endif
 
 static struct i2c_bl_cmd i2c_bl_init_lm3532_cmd[] = {
 	{0x10, 0x00, 0xff, "ILED1, ILED2, and ILED3 is controlled by Control A PWM and Control A Brightness Registers"},
@@ -982,7 +979,7 @@ static struct i2c_bl_cmd i2c_bl_set_get_brightness_lm3532_cmds[] = {
 static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.gpio = PM8921_GPIO_PM_TO_SYS(24),
 	.i2c_addr = 0x38,
-	.min_brightness = 0x05,
+	.min_brightness = 0x77,
 	.max_brightness = 0xFF,
 	.default_brightness = 0x9C,
 	.factory_brightness = 0x78,
@@ -1002,8 +999,8 @@ static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.get_brightness_cmds = i2c_bl_set_get_brightness_lm3532_cmds,
 	.get_brightness_cmds_size = ARRAY_SIZE(i2c_bl_set_get_brightness_lm3532_cmds),
 
-	.blmap = i2c_bl_mapped_lm3532_value,
-	.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lm3532_value),
+	//.blmap = i2c_bl_mapped_lm3532_value,
+	//.blmap_size = ARRAY_SIZE(i2c_bl_mapped_lm3532_value),
 };
 
 #endif

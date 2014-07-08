@@ -115,7 +115,8 @@ static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
 #define DEFAULT_BOOSTPULSE_DURATION 500000
 /* Duration of a boot pulse in usecs */
 static int boostpulse_duration_val = DEFAULT_BOOSTPULSE_DURATION;
-static u64 boostpulse_endtime;
+/* End time of boost pulse in ktime converted to usecs */
+static unsigned long boostpulse_endtime;
 bool boosted;
 
 /*
@@ -868,7 +869,7 @@ static ssize_t store_target_loads(
 }
 
 static struct global_attr target_loads_attr =
-	__ATTR(target_loads, 0644,
+	__ATTR(target_loads, S_IRUGO | S_IWUSR,
 		show_target_loads, store_target_loads);
 
 static ssize_t show_above_hispeed_delay(
@@ -912,7 +913,7 @@ static ssize_t store_above_hispeed_delay(
 }
 
 static struct global_attr above_hispeed_delay_attr =
-	__ATTR(above_hispeed_delay, 0644,
+	__ATTR(above_hispeed_delay, S_IRUGO | S_IWUSR,
 		show_above_hispeed_delay, store_above_hispeed_delay);
 
 static ssize_t show_hispeed_freq(struct kobject *kobj,
@@ -1075,6 +1076,14 @@ static ssize_t store_timer_slack(
 
 define_one_global_rw(timer_slack);
 
+#if 0
+static ssize_t show_boostpulse(
+	struct kobject *kobj, struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", boostpulse_endtime);
+}
+#endif
+
 static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 				const char *buf, size_t count)
 {
@@ -1092,7 +1101,7 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 }
 
 static struct global_attr boostpulse =
-	__ATTR(boostpulse, 0644, NULL, store_boostpulse);
+	__ATTR(boostpulse, 0664, NULL, store_boostpulse);
 
 static ssize_t show_boostpulse_duration(
 	struct kobject *kobj, struct attribute *attr, char *buf)

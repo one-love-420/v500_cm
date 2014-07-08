@@ -34,7 +34,7 @@
 
 #define I2C_BL_NAME                              "i2c_bl"
 #define MAX_BRIGHTNESS_I2C_BL                    0xFF
-#define MIN_BRIGHTNESS_I2C_BL                    0x0F
+#define MIN_BRIGHTNESS_I2C_BL                    0x77
 #define DEFAULT_BRIGHTNESS                       0xFF
 #define DEFAULT_FTM_BRIGHTNESS                   0x0F
 
