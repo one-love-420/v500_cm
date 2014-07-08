@@ -868,7 +868,7 @@ static ssize_t store_target_loads(
 }
 
 static struct global_attr target_loads_attr =
-	__ATTR(target_loads, S_IRUGO | S_IWUSR,
+	__ATTR(target_loads, 0644,
 		show_target_loads, store_target_loads);
 
 static ssize_t show_above_hispeed_delay(
@@ -912,7 +912,7 @@ static ssize_t store_above_hispeed_delay(
 }
 
 static struct global_attr above_hispeed_delay_attr =
-	__ATTR(above_hispeed_delay, S_IRUGO | S_IWUSR,
+	__ATTR(above_hispeed_delay, 0644,
 		show_above_hispeed_delay, store_above_hispeed_delay);
 
 static ssize_t show_hispeed_freq(struct kobject *kobj,
@@ -1092,7 +1092,7 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 }
 
 static struct global_attr boostpulse =
-	__ATTR(boostpulse, 0664, NULL, store_boostpulse);
+	__ATTR(boostpulse, 0644, NULL, store_boostpulse);
 
 static ssize_t show_boostpulse_duration(
 	struct kobject *kobj, struct attribute *attr, char *buf)
