@@ -776,8 +776,38 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	unsigned long flags;
 	int mixer = 0;
 	int undx, need_wait = 0;
-
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_HD_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
+	int retry_cnt = 0;
+#endif
 	printk(KERN_INFO "%s is started.. \n", __func__);
+
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_HD_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
+	do {
+		ret = mipi_lgit_lcd_off(pdev);
+
+		if (ret < 0) {
+			panel_next_off(pdev);
+			msleep(2);
+			panel_next_on(pdev);
+			msleep(5);
+			retry_cnt++;
+		}
+		else
+		{	// if upper routine is successed, need to initialize ret variable.
+			ret = 0;
+			break;
+		}
+	} while(retry_cnt < 10);
+	printk(KERN_INFO "%s : mipi_lgit_lcd_off retry_cnt = %d\n", __func__, retry_cnt);
+#endif
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
 
