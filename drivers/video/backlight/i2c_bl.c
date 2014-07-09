@@ -717,10 +717,9 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	memset(&props, 0, sizeof(struct backlight_properties));
 	props.type = BACKLIGHT_RAW;
 
-	props.max_brightness = MAX_BRIGHTNESS_I2C_BL;
 	bl_dev = backlight_device_register(I2C_BL_NAME, &i2c_dev->dev, NULL, &i2c_bl_ops, &props);
-	bl_dev->props.max_brightness = MAX_BRIGHTNESS_I2C_BL;
-	bl_dev->props.brightness = DEFAULT_BRIGHTNESS;
+	bl_dev->props.max_brightness = pdata->max_brightness;
+	bl_dev->props.brightness = pdata->default_brightness;
 	bl_dev->props.power = FB_BLANK_UNBLANK;
 
 	i2c_bl_dev->bl_dev = bl_dev;
@@ -811,11 +810,7 @@ static struct i2c_driver main_i2c_bl_driver = {
 
 static int __init lcd_backlight_init(void)
 {
-	static int err;
-
-	err = i2c_add_driver(&main_i2c_bl_driver);
-
-	return err;
+	return i2c_add_driver(&main_i2c_bl_driver);
 }
 
 module_init(lcd_backlight_init);
