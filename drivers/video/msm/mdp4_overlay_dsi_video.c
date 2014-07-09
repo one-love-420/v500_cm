@@ -632,6 +632,13 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 
 	atomic_set(&vctrl->suspend, 0);
 
+	if (!(mfd->cont_splash_done)) {
+		mfd->cont_splash_done = 1;
+		MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 0);
+		mdp4_dsi_video_wait4vsync(0);
+		mipi_dsi_controller_cfg(0);
+	}
+
 	pipe->src_height = fbi->var.yres;
 	pipe->src_width = fbi->var.xres;
 	pipe->src_h = fbi->var.yres;
