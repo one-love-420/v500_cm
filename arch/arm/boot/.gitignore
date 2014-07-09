@@ -2,5 +2,6 @@ Image
 zImage
 xipImage
 bootpImage
+mani.zip
 uImage
 *.dtb

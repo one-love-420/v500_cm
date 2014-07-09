@@ -10,6 +10,3 @@ obj-$(CONFIG_MACH_APQ8064_AWIFI) += awifi/
 
 #GVAR CMCC
 obj-$(CONFIG_MACH_APQ8064_GVAR_CMCC) += gvar/
-
-# COMMON
-obj-$(CONFIG_MACH_APQ8064_AWIFI) += common/
