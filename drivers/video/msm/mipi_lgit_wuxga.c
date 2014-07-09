@@ -48,7 +48,7 @@ static int mipi_stable_lcd_on(struct platform_device *pdev)
        int retry_cnt = 0;
 
        do {
-              printk("[LCD][DEBUG] %s, retry_cnt=%d\n", __func__, retry_cnt);
+              pr_info("%s, retry_cnt=%d\n", __func__, retry_cnt);
               ret = mipi_lgit_lcd_off(pdev);
 
               if (ret < 0) {
@@ -60,6 +60,7 @@ static int mipi_stable_lcd_on(struct platform_device *pdev)
                      break;
               }
        } while(retry_cnt < 10);
+
        mdelay(10);
 
        return ret;
@@ -82,7 +83,8 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
+	pr_info("%s started \n", __func__);
+
 #ifdef CONFIG_GAMMA_CONTROL
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		new_color_vals,
@@ -108,7 +110,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 
 			if (cnt < 0)
 				return cnt;
-			printk(KERN_INFO "[LCD][DEBUG] %s : CABC OFF\n", __func__);
+			pr_info("%s : CABC OFF\n", __func__);
 		}
 	} else {
 		if ((mipi_lgit_pdata->power_on_set_3 != NULL) &&
@@ -120,7 +122,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 			if (cnt < 0)
 				return cnt;
 
-			printk(KERN_INFO "[LCD][DEBUG] %s : CABC ON\n", __func__);
+			pr_info("%s : CABC ON\n", __func__);
 		}
 	}
 #endif
@@ -132,11 +134,8 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 		return cnt;
 
 	mipi_dsi_op_mode_config(DSI_VIDEO_MODE);
-	mdp4_overlay_dsi_video_start();
-	mdelay(120);
-//LGE_UPDATE_E hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
 
-	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
+	pr_info("%s ended \n", __func__);
 
 	return 0;
 }
@@ -146,7 +145,7 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 	int cnt = 0;
 	struct msm_fb_data_type *mfd;
 	
-	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
+	pr_info("%s started \n", __func__);
 
 	mfd =  platform_get_drvdata(pdev);
 	
@@ -166,7 +165,7 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 	}
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
-	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
+	pr_info("%s ended \n", __func__);
 
 	return 0;
 }
@@ -238,6 +237,7 @@ static ssize_t lgit_lcd_set_cabc_off(struct device *dev, struct device_attribute
 {
 	if (!count)
 		return -EINVAL;
+
 	mipi_lgit_pdata->cabc_off = simple_strtoul(buf, NULL, 10);
 	pr_info("%s: cabc (%s)\n", __func__, mipi_lgit_pdata->cabc_off ? "OFF" : "ON");
 	return count;
@@ -263,14 +263,14 @@ static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 #ifdef CONFIG_GAMMA_CONTROL
 	memcpy((void *) new_color_vals, (void *) mipi_lgit_pdata->power_on_set_1, sizeof(new_color_vals));
 #endif
-	printk(KERN_INFO "[LCD][DEBUG] %s: mipi lgit lcd probe start\n", __func__);
+	pr_info("%s: start\n", __func__);
 
 	msm_fb_add_device(pdev);
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 	err = device_create_file(&pdev->dev, &dev_attr_cabc_off);
 	if(err < 0)
-		printk("[LCD][DEBUG] %s : Cannot create the sysfs\n" , __func__);
+		pr_err("%s : Cannot create the sysfs\n" , __func__);
 #endif
 
 	return 0;
@@ -311,15 +311,13 @@ int mipi_lgit_device_register(struct msm_panel_info *pinfo,
 	ret = platform_device_add_data(pdev, &lgit_panel_data,
 		sizeof(lgit_panel_data));
 	if (ret) {
-		printk(KERN_ERR
-		  "[LCD][DEBUG] %s: platform_device_add_data failed!\n", __func__);
+		pr_err("%s: platform_device_add_data failed!\n", __func__);
 		goto err_device_put;
 	}
 
 	ret = platform_device_add(pdev);
 	if (ret) {
-		printk(KERN_ERR
-		  "[LCD][DEBUG] %s: platform_device_register failed!\n", __func__);
+		pr_err("%s: platform_device_register failed!\n", __func__);
 		goto err_device_put;
 	}
 
