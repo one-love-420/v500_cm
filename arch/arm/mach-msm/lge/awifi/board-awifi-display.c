@@ -957,10 +957,10 @@ static struct i2c_bl_cmd i2c_bl_set_get_brightness_lm3532_cmds[] = {
 static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.gpio = PM8921_GPIO_PM_TO_SYS(24),
 	.i2c_addr = 0x38,
-	.min_brightness = 0x7D,
+	.min_brightness = 0x8C,
 	.max_brightness = 0xFF,
 	.default_brightness = 0x9C,
-	.factory_brightness = 0x78,
+	.factory_brightness = 0xAA,
 
 	.init_cmds = i2c_bl_init_lm3532_cmd,
 	.init_cmds_size = ARRAY_SIZE(i2c_bl_init_lm3532_cmd),
