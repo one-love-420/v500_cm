@@ -81,7 +81,7 @@ static void update_level_scale(struct work_struct *work);
 static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val);
 static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
-static int i2c_bl_read_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
+//static int i2c_bl_read_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
 static int i2c_bl_set_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size, unsigned char value);
 
 static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level);
@@ -232,6 +232,7 @@ static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cm
 	return 0;
 }
 
+#if 0
 static int i2c_bl_read_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size)
 {
 	if(bl_cmds!=NULL && size>0) {
@@ -243,7 +244,7 @@ static int i2c_bl_read_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmd
 
 	return 0;
 }
-
+#endif
 
 static int i2c_bl_set_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size, unsigned char value)
 {
@@ -460,17 +461,8 @@ static int bl_get_intensity(struct backlight_device *bd)
 {
 	struct i2c_client *client = to_i2c_client(bd->dev.parent);
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 
-	unsigned char val = 0;
-
-	mutex_lock(&i2c_bl_dev->bl_mutex);
-	i2c_bl_read_regs(client, pdata->get_brightness_cmds, pdata->get_brightness_cmds_size);
-	mutex_unlock(&i2c_bl_dev->bl_mutex);
-
-	val = pdata->get_brightness_cmds[0].value & pdata->get_brightness_cmds[0].mask;
-
-	return (int)val;
+	return i2c_bl_dev->cur_main_lcd_level;
 }
 
 static ssize_t lcd_backlight_show_level(struct device *dev, struct device_attribute *attr, char *buf)
@@ -730,7 +722,6 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	i2c_bl_dev->max_brightness = pdata->max_brightness;
 	i2c_bl_dev->store_level_used = 0;
 	i2c_bl_dev->delay_for_shaking = 50;
-	i2c_bl_dev->cur_main_lcd_level = DEFAULT_BRIGHTNESS;
 	i2c_bl_dev->saved_main_lcd_level = DEFAULT_BRIGHTNESS;
 	i2c_bl_dev->backlight_status = BL_ON;
 	i2c_bl_dev->exp_min_value = 150;
