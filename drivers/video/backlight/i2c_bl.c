@@ -33,10 +33,9 @@
 #endif
 
 #define I2C_BL_NAME                              "i2c_bl"
-#define MAX_BRIGHTNESS_I2C_BL                    0xFF
 #define DEFAULT_BRIGHTNESS                       0xFF
 #define DEFAULT_FTM_BRIGHTNESS                   0x0F
-
+ 
 #define BL_ON        1
 #define BL_OFF       0
 
@@ -391,9 +390,10 @@ static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level)
 {
 	//struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	//struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
+	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
 
-	if (level > MAX_BRIGHTNESS_I2C_BL)
-		level = MAX_BRIGHTNESS_I2C_BL;
+	if (level > pdata->max_brightness)
+		level = pdata->max_brightness;
 
 //	pr_info("### %s level = (%d) \n ",__func__,level);
 	if (client != NULL) {
@@ -708,6 +708,7 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 
 	memset(&props, 0, sizeof(struct backlight_properties));
 	props.type = BACKLIGHT_RAW;
+	props.max_brightness = pdata->max_brightness;
 
 	bl_dev = backlight_device_register(I2C_BL_NAME, &i2c_dev->dev, NULL, &i2c_bl_ops, &props);
 	bl_dev->props.max_brightness = pdata->max_brightness;
