@@ -348,30 +348,36 @@ static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level)
 	//struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
 
+	if (!client) {
+		pr_warn("%s: not yet enabled\n", __func__);
+		return;
+	}
+
 	if (level > pdata->max_brightness)
 		level = pdata->max_brightness;
 
-//	pr_info("### %s level = (%d) \n ",__func__,level);
-	if (client != NULL) {
-		if (level == 0) {
-			i2c_bl_backlight_off(client);
-		} else {
-			i2c_bl_backlight_on(client, level);
-		}
-	} else {
-		pr_err("%s(): No client\n", __func__);
-	}
+	pr_debug("%s: level %d\n", __func__, level);
+	if (level)
+		i2c_bl_backlight_off(client);
+	else
+		i2c_bl_backlight_on(client, level);
+
 }
 
 static int bl_set_intensity(struct backlight_device *bd)
 {
 	struct i2c_client *client = to_i2c_client(bd->dev.parent);
+	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
 
-	if (backlight_status == BL_ON)
-		i2c_bl_set_main_current_level(client, bd->props.brightness);
+	int brightness = bd->props.brightness;
 
-	cur_main_lcd_level = bd->props.brightness;
-
+	if ((bd->props.state & BL_CORE_FBBLANK) ||
+			(bd->props.state & BL_CORE_SUSPENDED))
+		brightness = 0;
+	else if (brightness == 0)
+		brightness = pdata->default_brightness;
+	
+	i2c_bl_lcd_backlight_set_level(client, brightness);
 	return 0;
 }
 
@@ -409,7 +415,7 @@ static int i2c_bl_resume(struct i2c_client *client)
 
 static int i2c_bl_suspend(struct i2c_client *client, pm_message_t state)
 {
-	pr_debug("[LCD][DEBUG] %s: new state: %d\n", __func__, state.event);
+	pr_info("%s: new state: %d\n", __func__, state.event);
 
 	i2c_bl_backlight_off(client);
 
@@ -572,23 +578,21 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	struct i2c_bl_device *i2c_bl_dev;
 	struct backlight_device *bl_dev;
 	struct backlight_properties props;
-	int err;
-
-	pr_info("[LCD][DEBUG] %s: i2c probe start\n", __func__);
+	int err = 0;
 
 	pdata = i2c_dev->dev.platform_data;
-
+	if (!pdata)
+		return -ENODEV;
+	
 	i2c_bl_dev = kzalloc(sizeof(struct i2c_bl_device), GFP_KERNEL);
-	if (i2c_bl_dev == NULL) {
-		dev_err(&i2c_dev->dev, "fail alloc for i2c_bl_device\n");
-		return 0;
+	if (!i2c_bl_dev) {
+		dev_err(&client->dev, "fail alloc for i2c_bl_device\n");
+		return -ENOMEM;
 	}
 
 	pr_info("[LCD][DEBUG] %s: gpio = %d\n", __func__,pdata->gpio);
 
-	if (pdata->gpio && gpio_request(pdata->gpio, "i2c_bl reset") != 0) {
-		return -ENODEV;
-	}
+	
 
 	main_i2c_bl_dev = i2c_bl_dev;
 
@@ -597,6 +601,12 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	props.max_brightness = pdata->max_brightness;
 
 	bl_dev = backlight_device_register(I2C_BL_NAME, &i2c_dev->dev, NULL, &i2c_bl_ops, &props);
+
+	if (IS_ERR(bl_dev)) {
+		dev_err(&client->dev, "failed to register backlight\n");
+		err = PTR_ERR(bl_dev);
+		goto err_backlight_device_register;
+	}
 	bl_dev->props.max_brightness = pdata->max_brightness;
 	bl_dev->props.brightness = pdata->default_brightness;
 	bl_dev->props.power = FB_BLANK_UNBLANK;
@@ -629,6 +639,13 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	else
 		i2c_bl_dev->factory_brightness = pdata->factory_brightness;
 #endif
+	if (gpio_is_valid(pdata->gpio)) {
+		err = gpio_request(pdata->gpio, "i2c_bl reset");
+		if (err < 0) {
+			dev_err(&client->dev, "failed to register gpio\n");
+			goto err_gpio_request;
+		}
+	}
 
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_backlight_on_off);
@@ -637,12 +654,18 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_dump_reg);
 
 	return 0;
+
+err_gpio_request:
+	backlight_device_unregister(i2c_bl_dev->bl_dev);
+err_backlight_device_register:
+	kfree(i2c_bl_dev);
+
+	return err;
 }
 
 static int i2c_bl_remove(struct i2c_client *client)
 {
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	int gpio;
 
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_level);
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_backlight_on_off);
@@ -650,13 +673,13 @@ static int i2c_bl_remove(struct i2c_client *client)
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_shaking_delay);
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_dump_reg);
 
-	gpio = i2c_bl_dev->gpio;
-
-	backlight_device_unregister(i2c_bl_dev->bl_dev);
 	i2c_set_clientdata(client, NULL);
 
-	if (gpio_is_valid(gpio))
-		gpio_free(gpio);
+	if (gpio_is_valid(i2c_bl_dev->gpio))
+		gpio_free(i2c_bl_dev->gpio);
+
+	backlight_device_unregister(i2c_bl_dev->bl_dev);
+	kfree(i2c_bl_dev);
 
 	return 0;
 }
@@ -664,8 +687,6 @@ static int i2c_bl_remove(struct i2c_client *client)
 static struct i2c_driver main_i2c_bl_driver = {
 	.probe = i2c_bl_probe,
 	.remove = i2c_bl_remove,
-	.suspend = NULL,
-	.resume = NULL,
 	.id_table = i2c_bl_id,
 	.driver = {
 		.name = I2C_BL_NAME,
