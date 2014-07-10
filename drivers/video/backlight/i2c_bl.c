@@ -22,6 +22,7 @@
 #include <linux/fb.h>
 #include <linux/delay.h>
 #include <linux/gpio.h>
+#include <linux/mutex.h>
 #include <mach/board.h>
 #include <linux/i2c.h>
 #include <linux/i2c_bl.h>
@@ -30,11 +31,11 @@
 #include <mach/board_lge.h>
 
 #define I2C_BL_NAME                              "i2c_bl"
-#define DEFAULT_BRIGHTNESS                       0xFF
-#define DEFAULT_FTM_BRIGHTNESS                   0x0F
  
 #define BL_ON        1
 #define BL_OFF       0
+
+static DEFINE_MUTEX(backlight_mtx);
 
 struct i2c_bl_device {
 	struct i2c_client *client;
@@ -45,15 +46,10 @@ struct i2c_bl_device {
 	int max_brightness;
 	int default_brightness;
 	int factory_brightness;
-	struct mutex bl_mutex;
-
 	int store_level_used;
 	int delay_for_shaking;
-	int cur_main_lcd_level;
-	int saved_main_lcd_level;
-	int backlight_status;
+
 	int exp_min_value;
-	int cal_value;
 
 	int percentage;
 	int percentage_current;
@@ -67,23 +63,18 @@ static const struct i2c_device_id i2c_bl_id[] = {
 	{ },
 };
 
+static int cur_main_lcd_level;
+static int saved_main_lcd_level;
+static int backlight_status = BL_ON;
+
 static void update_level_scale(struct work_struct *work);
 
 static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val);
 static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
-//static int i2c_bl_read_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
 static int i2c_bl_set_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size, unsigned char value);
 
 static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level);
-
-#ifdef CONFIG_LGE_WIRELESS_CHARGER
-int wireless_backlight_state(void)
-{
-	return main_i2c_bl_dev->backlight_status;
-}
-EXPORT_SYMBOL(wireless_backlight_state);
-#endif
 
 void i2c_bl_lcd_backlight_set_level_export(int level)
 {
@@ -111,7 +102,7 @@ static void update_level_scale(struct work_struct *work)
 		return;
 
 	main_i2c_bl_dev->percentage_current = percentage_current;
-	i2c_bl_lcd_backlight_set_level_export(main_i2c_bl_dev->cur_main_lcd_level);
+	i2c_bl_lcd_backlight_set_level_export(cur_main_lcd_level);
 
 	if (percentage != percentage_current)
 		schedule_delayed_work(&update_level_scale_work, msecs_to_jiffies(main_i2c_bl_dev->duration_step));
@@ -126,7 +117,7 @@ void i2c_bl_lcd_backlight_set_level_scale(int percentage, unsigned long duration
 		if (duration <= 0) {
 			main_i2c_bl_dev->percentage_current = percentage;
 			main_i2c_bl_dev->duration_step = 0;
-			i2c_bl_lcd_backlight_set_level_export(main_i2c_bl_dev->cur_main_lcd_level);
+			i2c_bl_lcd_backlight_set_level_export(cur_main_lcd_level);
 		} else {
 			int percentage_current = main_i2c_bl_dev->percentage_current;
 
@@ -150,7 +141,6 @@ static void i2c_bl_hw_reset(struct i2c_client *client)
 {
 	//Disable warning: struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
-
 	int gpio = pdata->gpio;
 
 	if (gpio_is_valid(gpio)) {
@@ -223,20 +213,6 @@ static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cm
 	return 0;
 }
 
-#if 0
-static int i2c_bl_read_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size)
-{
-	if(bl_cmds!=NULL && size>0) {
-		while (size--) {
-			i2c_bl_read_reg(client, bl_cmds->addr, &bl_cmds->value);
-			bl_cmds++;
-		}
-	}
-
-	return 0;
-}
-#endif
-
 static int i2c_bl_set_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size, unsigned char value)
 {
 	if(bl_cmds!=NULL && size>0) {
@@ -267,7 +243,7 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 {
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
-	int cal_value;
+	int cal_value = 0;
 
 	if((pdata->factory_mode) && level)
 	{
@@ -276,12 +252,11 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 	if (level == -1)
 		level = i2c_bl_dev->default_brightness;
 
-	i2c_bl_dev->cur_main_lcd_level = level;
-	i2c_bl_dev->bl_dev->props.brightness = i2c_bl_dev->cur_main_lcd_level;
+	cur_main_lcd_level = level;
+	i2c_bl_dev->bl_dev->props.brightness = cur_main_lcd_level;
 
 	i2c_bl_dev->store_level_used = 0;
 
-	mutex_lock(&i2c_bl_dev->bl_mutex);
 	if (level != 0) {
 		if (pdata->blmap != NULL) {
 			if (level < pdata->blmap_size)
@@ -298,17 +273,14 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 			cal_value = (cal_value * i2c_bl_dev->percentage_current)/100;
 		}
 
-		i2c_bl_dev->cal_value = cal_value;
-
-		i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, i2c_bl_dev->cal_value);
+		i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, cal_value);
 	} else {
 		i2c_bl_write_regs(client, pdata->deinit_cmds, pdata->deinit_cmds_size);
-		i2c_bl_dev->backlight_status = BL_OFF;
+		backlight_status = BL_OFF;
 	}
-	mutex_unlock(&i2c_bl_dev->bl_mutex);
-
+	mdelay(1);
        //pr_info("[LCD][DEBUG] %s : backlight level=%d, cal_value=%d\n", __func__, level, i2c_bl_dev->cal_value);
-	   pr_info(" backlight level=%d, cal_value=%d\n", level, i2c_bl_dev->cal_value);
+	   pr_info(" backlight level=%d, cal_value=%d\n", level, cal_value);
 }
 
 static void i2c_bl_set_main_current_level_no_mapping(struct i2c_client *client, int level)
@@ -321,57 +293,53 @@ static void i2c_bl_set_main_current_level_no_mapping(struct i2c_client *client, 
 	else if (level < 0)
 		level = 0;
 
-	i2c_bl_dev->cur_main_lcd_level = level;
-	i2c_bl_dev->bl_dev->props.brightness = i2c_bl_dev->cur_main_lcd_level;
+	cur_main_lcd_level = level;
+	i2c_bl_dev->bl_dev->props.brightness = cur_main_lcd_level;
 
 	i2c_bl_dev->store_level_used = 1;
 
-	mutex_lock(&i2c_bl_dev->bl_mutex);
 	if (level != 0) {
 		i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, level);
 	} else {
 		i2c_bl_write_regs(client, pdata->deinit_cmds, pdata->deinit_cmds_size);
-		i2c_bl_dev->backlight_status = BL_OFF;
+		backlight_status = BL_OFF;
 	}
-	mutex_unlock(&i2c_bl_dev->bl_mutex);
 }
 
 void i2c_bl_backlight_on(struct i2c_client *client, int level)
 {
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 
-	if (i2c_bl_dev->backlight_status == BL_OFF) {
+	mutex_lock(&backlight_mtx);
+	if (backlight_status == BL_OFF) {
 		i2c_bl_hw_reset(client);
-		mutex_lock(&i2c_bl_dev->bl_mutex);
 		i2c_bl_write_regs(client, pdata->init_cmds, pdata->init_cmds_size);
-		mutex_unlock(&i2c_bl_dev->bl_mutex);
 	}
 	mdelay(1);
 
 	i2c_bl_set_main_current_level(client, level);
-	i2c_bl_dev->backlight_status = BL_ON;
-
-	return;
+	backlight_status = BL_ON;
+	mutex_unlock(&backlight_mtx);
 }
 
 static void i2c_bl_backlight_off(struct i2c_client *client)
 {
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 	int gpio = pdata->gpio;
 
-	if (i2c_bl_dev->backlight_status == BL_OFF)
+	mutex_lock(&backlight_mtx);
+	if (backlight_status == BL_OFF) {
+		mutex_unlock(&backlight_mtx);
 		return;
+	}
 
-	i2c_bl_dev->saved_main_lcd_level = i2c_bl_dev->cur_main_lcd_level;
+	saved_main_lcd_level = cur_main_lcd_level;
 	i2c_bl_set_main_current_level(client, 0);
-	i2c_bl_dev->backlight_status = BL_OFF;
+	backlight_status = BL_OFF;
 
 	gpio_direction_output(gpio, 0);
 	msleep(6);
-
-	return;
+	mutex_unlock(&backlight_mtx);
 }
 
 static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level)
@@ -398,36 +366,23 @@ static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level)
 static int bl_set_intensity(struct backlight_device *bd)
 {
 	struct i2c_client *client = to_i2c_client(bd->dev.parent);
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 
-	if (i2c_bl_dev->backlight_status == BL_ON)
+	if (backlight_status == BL_ON)
 		i2c_bl_set_main_current_level(client, bd->props.brightness);
 
-	i2c_bl_dev->cur_main_lcd_level = bd->props.brightness;
+	cur_main_lcd_level = bd->props.brightness;
 
 	return 0;
 }
 
 static int bl_get_intensity(struct backlight_device *bd)
 {
-	struct i2c_client *client = to_i2c_client(bd->dev.parent);
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-
-	return i2c_bl_dev->cur_main_lcd_level;
+	return cur_main_lcd_level;
 }
 
 static ssize_t lcd_backlight_show_level(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	int r = 0;
-	struct i2c_client *client = to_i2c_client(dev);
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-
-	if(i2c_bl_dev->store_level_used == 0)
-		r = snprintf(buf, PAGE_SIZE, "LCD Backlight Level is : %d\n", i2c_bl_dev->cal_value);
-	else if(i2c_bl_dev->store_level_used == 1)
-		r = snprintf(buf, PAGE_SIZE, "LCD Backlight Level is : %d\n", i2c_bl_dev->cur_main_lcd_level);
-
-	return r;
+	return snprintf(buf, PAGE_SIZE, "LCD Backlight Level is : %d\n", cur_main_lcd_level);
 }
 
 static ssize_t lcd_backlight_store_level(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
@@ -448,44 +403,35 @@ static ssize_t lcd_backlight_store_level(struct device *dev, struct device_attri
 
 static int i2c_bl_resume(struct i2c_client *client)
 {
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-
-	i2c_bl_lcd_backlight_set_level(client, i2c_bl_dev->saved_main_lcd_level);
+	i2c_bl_backlight_on(client, saved_main_lcd_level);
 	return 0;
 }
 
 static int i2c_bl_suspend(struct i2c_client *client, pm_message_t state)
 {
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-
 	pr_debug("[LCD][DEBUG] %s: new state: %d\n", __func__, state.event);
 
-	i2c_bl_lcd_backlight_set_level(client, i2c_bl_dev->saved_main_lcd_level);
+	i2c_bl_backlight_off(client);
 
 	return 0;
 }
 
 static ssize_t lcd_backlight_show_on_off(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	int r = 0;
+	pr_info("%s received (prev backlight_status: %s)\n", __func__, backlight_status ? "ON" : "OFF");
 
-	pr_info("%s received (prev backlight_status: %s)\n", __func__, i2c_bl_dev->backlight_status ? "ON" : "OFF");
-
-	return r;
+	return 0;
 }
 
 static ssize_t lcd_backlight_store_on_off(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	int on_off;
 	struct i2c_client *client = to_i2c_client(dev);
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 
 	if (!count)
 		return -EINVAL;
 
-	pr_info("%s received (prev backlight_status: %s)\n", __func__, i2c_bl_dev->backlight_status ? "ON" : "OFF");
+	pr_info("%s received (prev backlight_status: %s)\n", __func__, backlight_status ? "ON" : "OFF");
 
 	on_off = simple_strtoul(buf, NULL, 10);
 
@@ -503,11 +449,8 @@ static ssize_t lcd_backlight_show_exp_min_value(struct device *dev, struct devic
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	int r;
 
-	r = snprintf(buf, PAGE_SIZE, "LCD Backlight  : %d\n", i2c_bl_dev->exp_min_value);
-
-	return r;
+	return snprintf(buf, PAGE_SIZE, "LCD Backlight  : %d\n", i2c_bl_dev->exp_min_value);
 }
 
 static ssize_t lcd_backlight_store_exp_min_value(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
@@ -529,11 +472,10 @@ static ssize_t lcd_backlight_show_shaking_delay(struct device *dev, struct devic
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	int r = 0;
 
 	pr_debug("%s received (shaking delay : %d)\n", __func__, i2c_bl_dev->delay_for_shaking);
 
-	return r;
+	return 0;
 }
 
 static ssize_t lcd_backlight_store_shaking_delay(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
@@ -558,19 +500,18 @@ static ssize_t lcd_backlight_show_dump_reg(struct device *dev, struct device_att
 	struct i2c_client *client = to_i2c_client(dev);
 	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
 	struct i2c_bl_cmd *dump_regs = pdata->dump_regs;
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 
 	int dump_regs_size = pdata->dump_regs_size;
 
 	int r;
 	int ret = 0;
 
-	if (i2c_bl_dev->backlight_status==BL_OFF) {
+	if (backlight_status==BL_OFF) {
 		ret = snprintf(buf, PAGE_SIZE, "I2C BL are power down!!\n");
 		return ret;
 	}
 
-	mutex_lock(&i2c_bl_dev->bl_mutex);
+	mutex_lock(&backlight_mtx);
 
 	while (dump_regs_size--) {
 		i2c_bl_read_reg(client, dump_regs->addr, &dump_regs->value);
@@ -582,7 +523,7 @@ static ssize_t lcd_backlight_show_dump_reg(struct device *dev, struct device_att
 			break;
 		dump_regs++;
 	}
-	mutex_unlock(&i2c_bl_dev->bl_mutex);
+	mutex_unlock(&backlight_mtx);
 
 	return ret;
 }
@@ -590,12 +531,11 @@ static ssize_t lcd_backlight_show_dump_reg(struct device *dev, struct device_att
 static ssize_t lcd_backlight_store_dump_reg(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 
 	unsigned int addr, value, mask;
 	unsigned char ovalue;
 
-	if (i2c_bl_dev->backlight_status==BL_OFF)
+	if (backlight_status==BL_OFF)
 		return 0;
 
 	sscanf(buf, "%x %x %x", &addr, &value, &mask);
@@ -603,14 +543,14 @@ static ssize_t lcd_backlight_store_dump_reg(struct device *dev, struct device_at
 	if (mask==0)
 		return count;
 
-	mutex_lock(&i2c_bl_dev->bl_mutex);
+	mutex_lock(&backlight_mtx);
 	if (mask==0xff)
 		i2c_bl_write_reg(client, addr, value);
 	else {
 		i2c_bl_read_reg(client, addr, &ovalue);
 		i2c_bl_write_reg(client, addr, (ovalue&(~mask))|(value&mask));
 	}
-	mutex_lock(&i2c_bl_dev->bl_mutex);
+	mutex_lock(&backlight_mtx);
 
 	return count;
 }
@@ -669,8 +609,6 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	i2c_bl_dev->max_brightness = pdata->max_brightness;
 	i2c_bl_dev->store_level_used = 0;
 	i2c_bl_dev->delay_for_shaking = 50;
-	i2c_bl_dev->saved_main_lcd_level = DEFAULT_BRIGHTNESS;
-	i2c_bl_dev->backlight_status = BL_ON;
 	i2c_bl_dev->exp_min_value = 150;
 	i2c_bl_dev->percentage = 100;
 	i2c_bl_dev->percentage_current = 100;
@@ -691,7 +629,6 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	else
 		i2c_bl_dev->factory_brightness = pdata->factory_brightness;
 #endif
-	mutex_init(&i2c_bl_dev->bl_mutex);
 
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_backlight_on_off);
