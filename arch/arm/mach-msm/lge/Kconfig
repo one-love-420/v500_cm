@@ -1,9 +1,11 @@
 config MACH_LGE
 	bool
 
-menu "LGE Board Selection"
-source "arch/arm/mach-msm/lge/Kconfig.board"
-endmenu
+# AWIFI
+source "arch/arm/mach-msm/lge/awifi/Kconfig"
+
+config MACH_LGE_DUMMY
+	bool "NONE (No device)"
 
 
 menu "LGE Specific Patches"

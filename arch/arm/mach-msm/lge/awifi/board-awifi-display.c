@@ -741,12 +741,12 @@ static char display_on                  [2] = {0x29, 0x00};
 static char display_off                 [2] = {0x28, 0x00};
 
 static char set_address_mode            [2] = {0x36, 0x40};
-static char set_gamma_curve		[2] = {0x26, 0x01};
+static char set_gamma_curve		[2] = {0x26, 0x04};
 
 #define PF_16BIT 0x50
 #define PF_18BIT 0x60
 #define PF_24BIT 0x70
-static char set_pixel_format		[2] = {0x3A, PF_24BIT};
+static char set_pixel_format		[2] = {0x3A, 0x70};
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 /*                   */
@@ -766,12 +766,14 @@ static char gamma_set_b[?] = {0xC9,
 static char gamma_set_c[?] = {0xCA,
 #endif
 
+//static char setgamma[35] = {0xE0, 0x00, 0x18, 0x1F, 0x3F, 0x3F, 0x3F, 0x33, 0x57, 0x07, 0x0D, 0x0F, 0x13, 0x16, 0x14, 0x16, 0x18, 0x1F, 0x00, 0x18, 0x1F, 0x3F, 0x3F, 0x3F, 0x33, 0x57, 0x07, 0x0D, 0x0F, 0x13, 0x16, 0x14, 0x16, 0x18, 0x1F};
+
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
-	
+	//{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma), setgamma},
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
@@ -957,9 +959,9 @@ static struct i2c_bl_cmd i2c_bl_set_get_brightness_lm3532_cmds[] = {
 static struct i2c_bl_platform_data lm3532_i2c_bl_data = {
 	.gpio = PM8921_GPIO_PM_TO_SYS(24),
 	.i2c_addr = 0x38,
-	.min_brightness = 0x8C,
+	.min_brightness = 0x96,
 	.max_brightness = 0xFF,
-	.default_brightness = 0xAA,
+	.default_brightness = 0xB4,
 	.factory_brightness = 0x78,
 
 	.init_cmds = i2c_bl_init_lm3532_cmd,
