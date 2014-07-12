@@ -557,6 +557,15 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 		    copy_from_user(&b, cmap->blue++, sizeof(b)))
 			return -EFAULT;
 
+
+#ifdef CMAP_RESTORE  /*invert color*/
+		if (cmap_lut_changed) {
+			r = ~(r & 0xff);
+			g = ~(g & 0xff);
+			b = ~(b & 0xff);
+		}
+#endif
+
 #ifdef CONFIG_FB_MSM_MDP40
 		MDP_OUTP(MDP_BASE + 0x94800 +
 #else
