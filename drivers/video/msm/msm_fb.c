@@ -55,10 +55,6 @@
 
 #include <mach/board_lge.h>
 
-#if (defined(CONFIG_FB_MSM_DEFAULT_DEPTH_ARGB8888) ||\
-		defined(CONFIG_FB_MSM_DEFAULT_DEPTH_RGBA8888))
-extern int load_888rle_image(char *filename);
-#endif
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_NUM	3
 #endif
@@ -93,37 +89,6 @@ static u32 msm_fb_pseudo_palette[16] = {
 	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
 	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff
 };
-
-#ifdef CMAP_RESTORE/*invert color*/
-unsigned char cmap_lut_changed = 0;
-#endif
-
-#ifdef CSC_RESTORE
-bool csc_dmap_changed = 0;
-struct mdp_csc_cfg_data csc_cfg_backup_matrix = {
-	 .block = MDP_BLOCK_DMA_P,
-	 .csc_data = {
-		 (0),
-		 {
-			 0x0200, 0x0000, 0x0000,
-			 0x0000, 0x0200, 0x0000,
-			 0x0000, 0x0000, 0x0200,
-		 },
-		 {
-			 0x0, 0x0, 0x0,
-		 },
-		 {
-			 0, 0, 0,
-		 },
-		 {
-			 0, 0xff, 0, 0xff, 0, 0xff,
-		 },
-		 {
-			 0, 0xff, 0, 0xff, 0, 0xff,
-		 },
-	 },
-};
-#endif
 
 static struct ion_client *iclient;
 
@@ -172,7 +137,7 @@ static ssize_t msm_fb_read(struct fb_info *info, char __user *buf,
 #define MSM_FB_MAX_DBGFS 1024
 #define MAX_BACKLIGHT_BRIGHTNESS 255
 
-#define WAIT_FENCE_FIRST_TIMEOUT MSEC_PER_SEC
+#define WAIT_FENCE_FIRST_TIMEOUT 3 * MSEC_PER_SEC
 #define WAIT_FENCE_FINAL_TIMEOUT 10 * MSEC_PER_SEC
 /* Display op timeout should be greater than total timeout */
 #define WAIT_DISP_OP_TIMEOUT (WAIT_FENCE_FIRST_TIMEOUT +\
@@ -400,12 +365,110 @@ static ssize_t msm_fb_msm_fb_type(struct device *dev,
 	return ret;
 }
 
+extern unsigned int lcd_color_preset_lut[];
+static ssize_t msm_fb_show_lut_map(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	int i = 0;
+	int j = 0;
+
+	buf[0] = '{';
+
+	for (i = 0, j = 2; i < 256 && j < PAGE_SIZE; i++) {
+		if (!(i % 4))
+			buf[j++] = '\n';
+		if (lcd_color_preset_lut[i] < 0xFFFFF)
+			sprintf(&buf[j], "0x000%5X,", lcd_color_preset_lut[i]);
+		else
+			sprintf(&buf[j], "0x00%6X,", lcd_color_preset_lut[i]);
+		j += 12;
+	}
+	buf[j++] = '\n';
+	buf[j++] = '}';
+	buf[j++] = '\n';
+
+	return j;
+}
+static ssize_t msm_fb_store_lut_map(struct device *dev,
+				  struct device_attribute *attr, const char *buf, size_t count)
+{
+	char* tempbuf;
+	char* tok_buf;
+	int entry_num;
+	unsigned int entry_value;
+	int i = 0;
+	int max_cnt = 2;
+
+	if (count < 1)
+		return count;
+
+	tempbuf = kmalloc(count * sizeof(char), GFP_KERNEL);
+	memcpy(tempbuf, buf, count);
+	tempbuf[count - 1] = '\n';
+
+	tok_buf = strsep(&tempbuf, ",");
+
+	while(tok_buf != NULL) {
+		i++;
+		if (i > max_cnt)
+			break;
+		if (i == 1)
+			sscanf(tok_buf, "%d", &entry_num);
+		else
+			sscanf(tok_buf, "%x", &entry_value);
+		tok_buf = strsep(&tempbuf, ",");
+	}
+
+	lcd_color_preset_lut[entry_num] = entry_value;
+
+	if (msm_fb_pdata->update_lcdc_lut)
+		msm_fb_pdata->update_lcdc_lut();
+
+	kfree(tok_buf);
+	kfree(tempbuf);
+
+	return count;
+}
+static ssize_t msm_fb_store_lut_map_table(struct device *dev,
+				  struct device_attribute *attr, const char *buf, size_t count)
+{
+	int i, j;
+	unsigned int temp;
+	unsigned int entry_value[256];
+
+	if (count < 0)
+		return count;
+
+	for (i = 1, j = 0; i < count && j < 256; ++i) {
+		if (buf[i] != '\n' && buf[i] != ' ' && buf[i] != '{' && buf[i] != ',') {
+			sscanf(&buf[i+4], "%X", &temp);
+			entry_value[j] = temp;
+			lcd_color_preset_lut[j] = entry_value[j];
+			j++;
+			while (buf[i] != ',')
+				++i;
+		} else
+			i++;
+	}
+
+	if (msm_fb_pdata->update_lcdc_lut)
+		msm_fb_pdata->update_lcdc_lut();
+
+	return count;
+}
+
+
 static DEVICE_ATTR(msm_fb_type, S_IRUGO, msm_fb_msm_fb_type, NULL);
 static DEVICE_ATTR(msm_fb_fps_level, S_IRUGO | S_IWUSR | S_IWGRP, NULL, \
 				msm_fb_fps_level_change);
+static DEVICE_ATTR(msm_fb_lut_map, 0644, msm_fb_show_lut_map, msm_fb_store_lut_map);
+static DEVICE_ATTR(msm_fb_lut_map_table, 0644, NULL, msm_fb_store_lut_map_table);
+
 static struct attribute *msm_fb_attrs[] = {
 	&dev_attr_msm_fb_type.attr,
 	&dev_attr_msm_fb_fps_level.attr,
+	&dev_attr_msm_fb_lut_map.attr,
+	&dev_attr_msm_fb_lut_map_table.attr,
 	NULL,
 };
 static struct attribute_group msm_fb_attr_group = {
@@ -429,8 +492,6 @@ static void msm_fb_remove_sysfs(struct platform_device *pdev)
 	sysfs_remove_group(&mfd->fbi->dev->kobj, &msm_fb_attr_group);
 }
 
-static void bl_workqueue_handler(struct work_struct *work);
-
 static int msm_fb_probe(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
@@ -441,21 +502,14 @@ static int msm_fb_probe(struct platform_device *pdev)
 
 	if ((pdev->id == 0) && (pdev->num_resources > 0)) {
 		msm_fb_pdata = pdev->dev.platform_data;
-		if (pdev->resource[0].start) {
-			fbram_size =
-				pdev->resource[0].end -
-				pdev->resource[0].start + 1;
-			fbram_phys = (char *)pdev->resource[0].start;
-			fbram = __va(fbram_phys);
+		fbram_size =
+			pdev->resource[0].end - pdev->resource[0].start + 1;
+		fbram_phys = (char *)pdev->resource[0].start;
+		fbram = __va(fbram_phys);
 
-			if (!fbram) {
-				printk(KERN_ERR "fbram ioremap failed!\n");
-				return -ENOMEM;
-			}
-		} else {
-			fbram_size = 0;
-			fbram_phys = NULL;
-			fbram = NULL;
+		if (!fbram) {
+			printk(KERN_ERR "fbram ioremap failed!\n");
+			return -ENOMEM;
 		}
 		MSM_FB_DEBUG("msm_fb_probe:  phy_Addr = 0x%x virt = 0x%x\n",
 			     (int)fbram_phys, (int)fbram);
@@ -475,8 +529,6 @@ static int msm_fb_probe(struct platform_device *pdev)
 		return -EPERM;
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
-
-	INIT_DELAYED_WORK(&mfd->backlight_worker, bl_workqueue_handler);
 
 	if (!mfd)
 		return -ENODEV;
@@ -968,8 +1020,7 @@ static int default_bl_value = 164;
 static int bl_level_old = 0xF0;
 static int default_bl_value = 164;
 #elif defined (CONFIG_BACKLIGHT_I2C_BL)
-static int bl_level_old	= 0xF0;
-static int default_bl_value = 164;
+static int bl_level_old;
 #else /* QCT Original */
 //static int bl_level_old; QCT Oriainal
 static int bl_level_old = 0xF0;
@@ -1765,39 +1816,14 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	    ("FrameBuffer[%d] %dx%d size=%d bytes is registered successfully!\n",
 	     mfd->index, fbi->var.xres, fbi->var.yres, fbi->fix.smem_len);
 
-#ifdef CONFIG_FB_MSM_LOGO
-#if (defined(CONFIG_FB_MSM_DEFAULT_DEPTH_ARGB8888) ||\
-		defined(CONFIG_FB_MSM_DEFAULT_DEPTH_RGBA8888))
-	/* This function is used to load LG logo image in 888 rle format.
-	 * However, it is only allowed when MIPI LCD mode not other modes
-	 * such as HDMI, DTV etc.
-	 * it is also add early backlight on
-	 */
-	if (mfd->panel_info.type == MIPI_VIDEO_PANEL ||
-			mfd->panel_info.type == MIPI_CMD_PANEL){
-		msm_fb_open(mfd->fbi, 0);
 #ifdef CONFIG_UPDATE_LCDC_LUT
 	if (msm_fb_pdata->update_lcdc_lut)
 		msm_fb_pdata->update_lcdc_lut();
 #endif
-//		if (load_888rle_image(INIT_IMAGE_FILE) < 0) /* Flip buffer */
-//			printk(KERN_WARNING "fail to load 888 rle image\n");
-
-#if defined(CONFIG_MACH_LGE)
-        down(&mfd->sem);
-#if defined(CONFIG_MACH_APQ8064_AWIFI)
-        msm_fb_set_backlight(mfd, default_bl_value);
-#else
-	msm_fb_set_backlight(mfd, 0);
-#endif
-        up(&mfd->sem);
-#endif
-	}
-#else
+#ifdef CONFIG_FB_MSM_LOGO
 	/* Flip buffer */
 	if (!load_565rle_image(INIT_IMAGE_FILE, bf_supported))
 		;
-#endif
 #endif
 	ret = 0;
 
@@ -2163,30 +2189,6 @@ static int msm_fb_pan_display_ex(struct fb_info *info,
 	if (wait_for_finish)
 		msm_fb_pan_idle(mfd);
 	return ret;
-}
-
-static void bl_workqueue_handler(struct work_struct *work)
-{
-	struct msm_fb_data_type *mfd = container_of(to_delayed_work(work),
-				struct msm_fb_data_type, backlight_worker);
-	struct msm_fb_panel_data *pdata = mfd->pdev->dev.platform_data;
-
-	if ((pdata) && (pdata->set_backlight) && (!bl_updated)) {
-		down(&mfd->sem);
-		mfd->bl_level = unset_bl_level;
-#if defined(CONFIG_MACH_LGE)
-		if(!splash_screen_done) {
-			mfd->bl_level = default_bl_value;
-			splash_screen_done = 1;
-		} else {
-			mfd->bl_level = unset_bl_level;
-		}
-#endif
-		pdata->set_backlight(mfd);
-		bl_level_old = unset_bl_level;
-		bl_updated = 1;
-		up(&mfd->sem);
-	}
 }
 
 static inline int rt_policy(int policy)
@@ -3858,13 +3860,6 @@ static int msmfb_handle_pp_ioctl(struct msm_fb_data_type *mfd,
 	switch (pp_ptr->op) {
 #ifdef CONFIG_FB_MSM_MDP40
 	case mdp_op_csc_cfg:
-#ifdef CSC_RESTORE/*invert color*/
-		if (pp_ptr->data.csc_cfg_data.block == MDP_BLOCK_DMA_P) {
-			memcpy(&csc_cfg_backup_matrix.csc_data, &(pp_ptr->data.csc_cfg_data.csc_data),
-				sizeof(struct mdp_csc_cfg));
-			csc_dmap_changed = 1;
-		}
-#endif
 		ret = mdp4_csc_config(&(pp_ptr->data.csc_cfg_data));
 		for (i = 0; i < CSC_MAX_BLOCKS; i++) {
 			if (pp_ptr->data.csc_cfg_data.block ==
@@ -4280,10 +4275,6 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			return ret;
 
 		mutex_lock(&msm_fb_ioctl_lut_sem);
-#ifdef CMAP_RESTORE/*invert color*/
-		cmap_lut_changed = ((~cmap_lut_changed) & 0x1);
-		pr_info(" %s  cmap_lut_changed:%d\n", __func__, cmap_lut_changed);
-#endif
 		ret = msm_fb_set_lut(&cmap, info);
 		mutex_unlock(&msm_fb_ioctl_lut_sem);
 		break;
