@@ -36,18 +36,10 @@
 #include <msm/msm_fb.h>
 #include <msm/msm_fb_def.h>
 #include <msm/mipi_dsi.h>
+#include <msm/mdp.h>
 
 #include "devices.h"
 #include "board-awifi.h"
-
-#ifdef CONFIG_LGE_KCAL
-#ifdef CONFIG_LGE_QC_LCDC_LUT
-extern int set_qlut_kcal_values(int kcal_r, int kcal_g, int kcal_b);
-extern int refresh_qlut_display(void);
-#else
-#error only kcal by Qucalcomm LUT is supported now!!!
-#endif
-#endif
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 /* prim = 1366 x 768 x 3(bpp) x 3(pages) */
@@ -122,8 +114,42 @@ static int msm_fb_detect_panel(const char *name)
 	return 0;
 }
 
+#ifdef CONFIG_LCD_KCAL
+struct kcal_data kcal_value;
+#endif
+
+#ifdef CONFIG_UPDATE_LCDC_LUT
+extern unsigned int lcd_color_preset_lut[];
+int update_preset_lcdc_lut(void)
+{
+	struct fb_cmap cmap;
+	int ret = 0;
+
+	cmap.start = 0;
+	cmap.len = 256;
+	cmap.transp = NULL;
+
+#ifdef CONFIG_LCD_KCAL
+	cmap.red = (uint16_t *)&(kcal_value.red);
+	cmap.green = (uint16_t *)&(kcal_value.green);
+	cmap.blue = (uint16_t *)&(kcal_value.blue);
+#else
+	cmap.red = NULL;
+	cmap.green = NULL;
+	cmap.blue = NULL;
+#endif
+
+	ret = mdp_preset_lut_update_lcdc(&cmap, lcd_color_preset_lut);
+	if (ret)
+		pr_err("%s: failed to set lut! %d\n", __func__, ret);
+
+	return ret;
+}
+#endif
+
 static struct msm_fb_platform_data msm_fb_pdata = {
 	.detect_client = msm_fb_detect_panel,
+	.update_lcdc_lut = update_preset_lcdc_lut,
 };
 
 static struct platform_device msm_fb_device = {
@@ -265,15 +291,32 @@ void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)
 #endif
 }
 
-#ifdef CONFIG_LGE_KCAL
-extern int set_kcal_values(int kcal_r, int kcal_g, int kcal_b);
-extern int refresh_kcal_display(void);
-extern int get_kcal_values(int *kcal_r, int *kcal_g, int *kcal_b);
+#ifdef CONFIG_LCD_KCAL
+int kcal_set_values(int kcal_r, int kcal_g, int kcal_b)
+{
+	kcal_value.red = kcal_r;
+	kcal_value.green = kcal_g;
+	kcal_value.blue = kcal_b;
+	return 0;
+}
+
+static int kcal_get_values(int *kcal_r, int *kcal_g, int *kcal_b)
+{
+	*kcal_r = kcal_value.red;
+	*kcal_g = kcal_value.green;
+	*kcal_b = kcal_value.blue;
+	return 0;
+}
+
+static int kcal_refresh_values(void)
+{
+	return update_preset_lcdc_lut();
+}
 
 static struct kcal_platform_data kcal_pdata = {
-	.set_values = set_kcal_values,
-	.get_values = get_kcal_values,
-	.refresh_display = refresh_kcal_display
+	.set_values = kcal_set_values,
+	.get_values = kcal_get_values,
+	.refresh_display = kcal_refresh_values
 };
 
 static struct platform_device kcal_platrom_device = {
@@ -282,7 +325,7 @@ static struct platform_device kcal_platrom_device = {
 		.platform_data = &kcal_pdata,
 	}
 };
-#endif /* CONFIG_LGE_KCAL */
+#endif
 
 static struct resource hdmi_msm_resources[] = {
 	{
@@ -736,12 +779,12 @@ static int mipi_lgit_backlight_level(int level, int max, int min)
 /* LGE_CHANGE_START:ilhwan.ahn@lge.com, 2013.05.22, Change the initial sest for AWiFi */
 static char exit_sleep_mode             [2] = {0x11, 0x00};
 static char enter_sleep_mode            [2] = {0x10, 0x00};
+static char set_gamma_curve		[2] = {0x26, 0x02};
 
 static char display_on                  [2] = {0x29, 0x00};
 static char display_off                 [2] = {0x28, 0x00};
 
 static char set_address_mode            [2] = {0x36, 0x40};
-static char set_gamma_curve		[2] = {0x26, 0x08};
 
 #define PF_16BIT 0x50
 #define PF_18BIT 0x60
@@ -766,29 +809,29 @@ static char gamma_set_b[?] = {0xC9,
 static char gamma_set_c[?] = {0xCA,
 #endif
 
-static char setgamma_test0[3] = {0xd0, 0x40, 0x60};
-static char setgamma_test1[3] = {0xd1, 0x40, 0x60};
-static char setgamma_test2[3] = {0xd2, 0x40, 0x60};
-static char setgamma_test3[3] = {0xd3, 0x40, 0x60};
-static char setgamma_test4[3] = {0xd4, 0x40, 0x60};
-static char setgamma_test5[3] = {0xd5, 0x40, 0x60};
-static char setgamma_test6[3] = {0xd6, 0x40, 0x60};
-static char setgamma_test7[3] = {0xd7, 0x40, 0x60};
-static char setgamma_test8[3] = {0xd8, 0x40, 0x60};
-static char setgamma_test9[3] = {0xd9, 0x40, 0x60};
-static char setgamma_testa[3] = {0xda, 0x40, 0x60};
-static char setgamma_testb[3] = {0xdb, 0x40, 0x60};
-static char setgamma_testc[3] = {0xdc, 0x40, 0x60};
-static char setgamma_testd[3] = {0xdd, 0x40, 0x60};
-static char setgamma_teste[3] = {0xde, 0x40, 0x60};
-static char setgamma_testf[3] = {0xdf, 0x40, 0x60};
+static char setgamma_test0[3] = {0xd0, 0x01, 0x60};
+static char setgamma_test1[3] = {0xd1, 0x01, 0x60};
+static char setgamma_test2[3] = {0xd2, 0x01, 0x60};
+static char setgamma_test3[3] = {0xd3, 0x01, 0x60};
+static char setgamma_test4[3] = {0xd4, 0x01, 0x60};
+static char setgamma_test5[3] = {0xd5, 0x01, 0x60};
+static char setgamma_test6[3] = {0xd6, 0x01, 0x60};
+static char setgamma_test7[3] = {0xd7, 0x01, 0x60};
+static char setgamma_test8[3] = {0xd8, 0x01, 0x60};
+static char setgamma_test9[3] = {0xd9, 0x01, 0x60};
+static char setgamma_testa[3] = {0xda, 0x01, 0x60};
+static char setgamma_testb[3] = {0xdb, 0x01, 0x60};
+static char setgamma_testc[3] = {0xdc, 0x01, 0x60};
+static char setgamma_testd[3] = {0xdd, 0x01, 0x60};
+static char setgamma_teste[3] = {0xde, 0x01, 0x60};
+static char setgamma_testf[3] = {0xdf, 0x01, 0x60};
 
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
-	
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode), set_address_mode},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format), set_pixel_format},
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(set_gamma_curve), set_gamma_curve},
+
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test0), setgamma_test0},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test1), setgamma_test1},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test2), setgamma_test2},
@@ -805,7 +848,6 @@ static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testd), setgamma_testd},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_teste), setgamma_teste},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testf), setgamma_testf},
-
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
@@ -893,22 +935,16 @@ static struct platform_device mipi_dsi_lgit_panel_device_noCABC = {
 /* LGE_CHANGE_END:ilhwan.ahn@lge.com, 2013.05.22, Change the initial sest for AWiFi */
 
 static struct platform_device *awifi_panel_devices[] __initdata = {
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 	&mipi_dsi_lgit_panel_device,
-#endif
-#ifdef CONFIG_LGE_KCAL
+#ifdef CONFIG_LCD_KCAL
 	&kcal_platrom_device,
 #endif
 };
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 static struct platform_device *awifi_panel_devices_noCABC[] __initdata = {
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 	&mipi_dsi_lgit_panel_device_noCABC,
-#endif
-#ifdef CONFIG_LGE_KCAL
+#ifdef CONFIG_LCD_KCAL
 	&kcal_platrom_device,
 #endif
 };
