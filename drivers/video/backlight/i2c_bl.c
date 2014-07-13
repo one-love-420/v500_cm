@@ -46,9 +46,8 @@ struct i2c_bl_device {
 	int default_brightness;
 	int factory_brightness;
 	char *blmap;
-	int blmap_size
+	int blmap_size;
 };
-
 
 static int cur_main_lcd_level;
 static int saved_main_lcd_level;
@@ -391,22 +390,24 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	struct i2c_bl_device *i2c_bl_dev;
 	struct backlight_device *bl_dev;
 	struct backlight_properties props;
-	int err;
-
-	pr_info("[LCD][DEBUG] %s: i2c probe start\n", __func__);
+	int err = 0;
 
 	pdata = i2c_dev->dev.platform_data;
 
 	i2c_bl_dev = kzalloc(sizeof(struct i2c_bl_device), GFP_KERNEL);
-	if (i2c_bl_dev == NULL) {
+	if (!i2c_bl_dev) {
 		dev_err(&i2c_dev->dev, "fail alloc for i2c_bl_device\n");
-		return 0;
+		return -ENOMEM;
 	}
 
 	pr_info("[LCD][DEBUG] %s: gpio = %d\n", __func__,pdata->gpio);
 
-	if (pdata->gpio && gpio_request(pdata->gpio, "i2c_bl reset") != 0) {
-		return -ENODEV;
+	if (gpio_is_valid(i2c_bl_dev->gpio)) {
+		err = gpio_request(i2c_bl_dev->gpio, "i2c_bl reset");
+		if (err < 0) {
+			dev_err(&i2c_dev->dev, "failed to request gpio\n");
+			goto err_gpio_request;
+		}
 	}
 
 	main_i2c_bl_dev = i2c_bl_dev;
@@ -416,6 +417,11 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	props.max_brightness = pdata->max_brightness;
 
 	bl_dev = backlight_device_register(I2C_BL_NAME, &i2c_dev->dev, NULL, &i2c_bl_ops, &props);
+	if (IS_ERR(bl_dev)) {
+		dev_err(&i2c_dev->dev, "failed to register backlight\n");
+		err = PTR_ERR(bl_dev);
+		goto err_backlight_device_register;
+	}
 	bl_dev->props.max_brightness = pdata->max_brightness;
 	bl_dev->props.brightness = pdata->default_brightness;
 	bl_dev->props.power = FB_BLANK_UNBLANK;
@@ -436,29 +442,49 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	    pdata->factory_mode = 1;
 		pdata->factory_brightness = 3;
 	}
-    else pdata->factory_mode = 0;
+    	else pdata->factory_mode = 0;
 
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
+	if (err < 0) {
+		dev_err(&i2c_dev->dev, "failed to create 1st sysfs\n");
+		goto err_device_create_file_1;
+	}
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_backlight_on_off);
-	
+	if (err < 0) {
+		dev_err(&i2c_dev->dev, "failed to create 2nd sysfs\n");
+		goto err_device_create_file_2;
+	}
+
+	pr_info("i2c_bl probed\n");
 	return 0;
+
+err_device_create_file_2:
+	device_remove_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
+err_device_create_file_1:
+	if (gpio_is_valid(i2c_bl_dev->gpio))
+		gpio_free(i2c_bl_dev->gpio);
+err_gpio_request:
+	backlight_device_unregister(i2c_bl_dev->bl_dev);
+err_backlight_device_register:
+	kfree(i2c_bl_dev);
+
+	return err;
 }
 
 static int i2c_bl_remove(struct i2c_client *client)
 {
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	int gpio;
 
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_level);
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_backlight_on_off);
-
-	gpio = i2c_bl_dev->gpio;
-
-	backlight_device_unregister(i2c_bl_dev->bl_dev);
+	
 	i2c_set_clientdata(client, NULL);
 
-	if (gpio_is_valid(gpio))
-		gpio_free(gpio);
+	if (gpio_is_valid(i2c_bl_dev->gpio))
+		gpio_free(i2c_bl_dev->gpio);
+
+	backlight_device_unregister(i2c_bl_dev->bl_dev);
+	kfree(i2c_bl_dev);
 
 	return 0;
 }
@@ -466,8 +492,6 @@ static int i2c_bl_remove(struct i2c_client *client)
 static struct i2c_driver main_i2c_bl_driver = {
 	.probe = i2c_bl_probe,
 	.remove = i2c_bl_remove,
-	.suspend = NULL,
-	.resume = NULL,
 	.id_table = i2c_bl_id,
 	.driver = {
 		.name = I2C_BL_NAME,
