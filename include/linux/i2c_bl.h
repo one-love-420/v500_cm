@@ -16,7 +16,6 @@
 #define __I2C_BL_H__
 
 void i2c_bl_lcd_backlight_set_level_export(int level);
-void i2c_bl_lcd_backlight_set_level_scale(int percentage, unsigned long duration);
 
 struct i2c_bl_cmd {
 	unsigned char addr;
