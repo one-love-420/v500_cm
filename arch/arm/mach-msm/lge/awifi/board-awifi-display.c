@@ -740,13 +740,13 @@ static char enter_sleep_mode            [2] = {0x10, 0x00};
 static char display_on                  [2] = {0x29, 0x00};
 static char display_off                 [2] = {0x28, 0x00};
 
-static char set_address_mode            [2] = {0x36, 0x40};
+static char set_address_mode            [2] = {0x36, 0x01};
 static char set_gamma_curve		[2] = {0x26, 0x08};
 
 #define PF_16BIT 0x50
 #define PF_18BIT 0x60
 #define PF_24BIT 0x70
-static char set_pixel_format		[2] = {0x3A, 0x70};
+//static char set_pixel_format		[2] = {0x3A, 0x70};
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
 /*                   */
@@ -766,46 +766,25 @@ static char gamma_set_b[?] = {0xC9,
 static char gamma_set_c[?] = {0xCA,
 #endif
 
-static char setgamma_test0[3] = {0xd0, 0x40, 0x60};
-static char setgamma_test1[3] = {0xd1, 0x40, 0x60};
-static char setgamma_test2[3] = {0xd2, 0x40, 0x60};
-static char setgamma_test3[3] = {0xd3, 0x40, 0x60};
-static char setgamma_test4[3] = {0xd4, 0x40, 0x60};
-static char setgamma_test5[3] = {0xd5, 0x40, 0x60};
-static char setgamma_test6[3] = {0xd6, 0x40, 0x60};
-static char setgamma_test7[3] = {0xd7, 0x40, 0x60};
-static char setgamma_test8[3] = {0xd8, 0x40, 0x60};
-static char setgamma_test9[3] = {0xd9, 0x40, 0x60};
-static char setgamma_testa[3] = {0xda, 0x40, 0x60};
-static char setgamma_testb[3] = {0xdb, 0x40, 0x60};
-static char setgamma_testc[3] = {0xdc, 0x40, 0x60};
-static char setgamma_testd[3] = {0xdd, 0x40, 0x60};
-static char setgamma_teste[3] = {0xde, 0x40, 0x60};
-static char setgamma_testf[3] = {0xdf, 0x40, 0x60};
+static char p_gamma_r_setting[10] = {0xD0, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char n_gamma_r_setting[10] = {0xD1, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char p_gamma_g_setting[10] = {0xD2, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char n_gamma_g_setting[10] = {0xD3, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char p_gamma_b_setting[10] = {0xD4, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char n_gamma_b_setting[10] = {0xD5, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
 
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
+//	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
 	
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test0), setgamma_test0},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test1), setgamma_test1},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test2), setgamma_test2},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test3), setgamma_test3},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test4), setgamma_test4},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test5), setgamma_test5},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test6), setgamma_test6},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test7), setgamma_test7},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test8), setgamma_test8},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_test9), setgamma_test9},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testa), setgamma_testa},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testb), setgamma_testb},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testc), setgamma_testc},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testd), setgamma_testd},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_teste), setgamma_teste},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(setgamma_testf), setgamma_testf},
-
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_r_setting), p_gamma_r_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_r_setting), n_gamma_r_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_g_setting), p_gamma_g_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_g_setting), n_gamma_g_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(p_gamma_b_setting), p_gamma_b_setting},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(n_gamma_b_setting), n_gamma_b_setting},
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {

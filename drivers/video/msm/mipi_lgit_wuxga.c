@@ -133,7 +133,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	if (cnt < 0)
 		return cnt;
 
-	mipi_dsi_op_mode_config(DSI_VIDEO_MODE);
+	mipi_dsi_op_mode_config(DSI_CMD_MODE);
 
 	pr_info("%s ended \n", __func__);
 
