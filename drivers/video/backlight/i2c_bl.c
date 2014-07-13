@@ -68,7 +68,7 @@ static const struct i2c_device_id i2c_bl_id[] = {
 	{ },
 };
 
-static void update_level_scale(struct work_struct *work);
+//static void update_level_scale(struct work_struct *work);
 
 static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val);
@@ -88,6 +88,7 @@ void i2c_bl_lcd_backlight_set_level_export(int level)
 }
 EXPORT_SYMBOL(i2c_bl_lcd_backlight_set_level_export);
 
+#if 0
 static DECLARE_DELAYED_WORK(update_level_scale_work, update_level_scale);
 
 static void update_level_scale(struct work_struct *work)
@@ -137,6 +138,7 @@ void i2c_bl_lcd_backlight_set_level_scale(int percentage, unsigned long duration
 	}
 }
 EXPORT_SYMBOL(i2c_bl_lcd_backlight_set_level_scale);
+#endif
 
 static void i2c_bl_hw_reset(struct i2c_client *client)
 {
@@ -439,6 +441,8 @@ static ssize_t lcd_backlight_store_on_off(struct device *dev, struct device_attr
 	return count;
 
 }
+
+#if 0
 static ssize_t lcd_backlight_show_exp_min_value(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
@@ -548,12 +552,13 @@ static ssize_t lcd_backlight_store_dump_reg(struct device *dev, struct device_at
 
 	return count;
 }
+#endif
 
 DEVICE_ATTR(i2c_bl_level, 0644, lcd_backlight_show_level, lcd_backlight_store_level);
 DEVICE_ATTR(i2c_bl_backlight_on_off, 0644, lcd_backlight_show_on_off, lcd_backlight_store_on_off);
-DEVICE_ATTR(i2c_bl_exp_min_value, 0644, lcd_backlight_show_exp_min_value, lcd_backlight_store_exp_min_value);
-DEVICE_ATTR(i2c_bl_shaking_delay, 0644, lcd_backlight_show_shaking_delay, lcd_backlight_store_shaking_delay);
-DEVICE_ATTR(i2c_bl_dump_reg, 0644, lcd_backlight_show_dump_reg, lcd_backlight_store_dump_reg);
+//DEVICE_ATTR(i2c_bl_exp_min_value, 0644, lcd_backlight_show_exp_min_value, lcd_backlight_store_exp_min_value);
+//DEVICE_ATTR(i2c_bl_shaking_delay, 0644, lcd_backlight_show_shaking_delay, lcd_backlight_store_shaking_delay);
+//DEVICE_ATTR(i2c_bl_dump_reg, 0644, lcd_backlight_show_dump_reg, lcd_backlight_store_dump_reg);
 
 static struct backlight_ops i2c_bl_ops = {
 	.update_status = bl_set_intensity,
@@ -626,9 +631,9 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_backlight_on_off);
-	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_exp_min_value);
-	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_shaking_delay);
-	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_dump_reg);
+	//err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_exp_min_value);
+	//err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_shaking_delay);
+	//err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_dump_reg);
 
 	return 0;
 }
@@ -640,9 +645,9 @@ static int i2c_bl_remove(struct i2c_client *client)
 
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_level);
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_backlight_on_off);
-	device_remove_file(&client->dev, &dev_attr_i2c_bl_exp_min_value);
-	device_remove_file(&client->dev, &dev_attr_i2c_bl_shaking_delay);
-	device_remove_file(&client->dev, &dev_attr_i2c_bl_dump_reg);
+	//device_remove_file(&client->dev, &dev_attr_i2c_bl_exp_min_value);
+	//device_remove_file(&client->dev, &dev_attr_i2c_bl_shaking_delay);
+	//device_remove_file(&client->dev, &dev_attr_i2c_bl_dump_reg);
 
 	gpio = i2c_bl_dev->gpio;
 

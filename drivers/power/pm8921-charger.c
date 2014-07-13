@@ -1849,6 +1849,9 @@ static enum power_supply_property pm_power_props_mains[] = {
 
 static char *pm_power_supplied_to[] = {
 	"battery",
+#ifdef CONFIG_TOUCHSCREEN_CHARGER_NOTIFY
+	"touch",
+#endif
 };
 
 #ifdef CONFIG_LGE_PM
@@ -3255,6 +3258,7 @@ int pm8921_set_usb_power_supply_type(enum power_supply_type type)
 	}
 #endif
 
+#if 0
 #if defined(CONFIG_MACH_APQ8064_AWIFI)
 	{
 		extern void i2c_bl_lcd_backlight_set_level_scale(int percentage, unsigned long duration);
@@ -3269,6 +3273,7 @@ int pm8921_set_usb_power_supply_type(enum power_supply_type type)
 			i2c_bl_lcd_backlight_set_level_scale(100, 100);
 		}
 	}
+#endif
 #endif
 
 #ifdef CONFIG_LGE_PM
