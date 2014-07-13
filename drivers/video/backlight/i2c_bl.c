@@ -56,16 +56,17 @@ struct i2c_bl_device {
 	unsigned long duration_step;
 };
 
+
+static int cur_main_lcd_level;
+static int saved_main_lcd_level;
+static int backlight_status = BL_ON;
+
 static struct i2c_bl_device *main_i2c_bl_dev;
 
 static const struct i2c_device_id i2c_bl_id[] = {
 	{ I2C_BL_NAME, 0 },
 	{ },
 };
-
-static int cur_main_lcd_level;
-static int saved_main_lcd_level;
-static int backlight_status = BL_ON;
 
 static void update_level_scale(struct work_struct *work);
 
@@ -146,10 +147,8 @@ static void i2c_bl_hw_reset(struct i2c_client *client)
 	if (gpio_is_valid(gpio)) {
 		gpio_direction_output(gpio, 1);
 		gpio_set_value_cansleep(gpio, 1);
-		mdelay(10);
+		mdelay(1);
 	}
-	else
-		pr_err("%s: gpio is not valid !!\n", __func__);
 }
 
 static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf)
@@ -170,7 +169,6 @@ static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf)
 
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val)
 {
-	int err;
 	u8 buf[2];
 	struct i2c_msg msg = {
 		client->addr, 0, 2, buf
@@ -179,11 +177,10 @@ static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsign
 	buf[0] = reg;
 	buf[1] = val;
 
-	err = i2c_transfer(client->adapter, &msg, 1);
-	if (err < 0)
+	if (i2c_transfer(client->adapter, &msg, 1) < 0)
 		dev_err(&client->dev, "i2c write error\n");
 
-	return err;
+	return 0;
 }
 
 static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size)
@@ -243,44 +240,36 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 {
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
+
 	int cal_value = 0;
+	int min_brightness = i2c_bl_dev->min_brightness;
+	int max_brightness = i2c_bl_dev->max_brightness;
 
-	if((pdata->factory_mode) && level)
-	{
-		level = pdata->factory_brightness;
-	}
-	if (level == -1)
-		level = i2c_bl_dev->default_brightness;
-
-	cur_main_lcd_level = level;
-	i2c_bl_dev->bl_dev->props.brightness = cur_main_lcd_level;
+	i2c_bl_dev->bl_dev->props.brightness = cur_main_lcd_level = level;
 
 	i2c_bl_dev->store_level_used = 0;
 
-	if (level != 0) {
-		if (pdata->blmap != NULL) {
-			if (level < pdata->blmap_size)
-				cal_value = pdata->blmap[level];
-			else {
+	if (level != 0) {		
+		if (level > 0 && level <= min_brightness)
+			cal_value = min_brightness;
+		else if (level > min_brightness && level <= max_brightness)
+			cal_value = level;
+		else if (level > max_brightness)
+			cal_value = max_brightness;
+ 
+		if (pdata->blmap) {
+			if (cal_value < pdata->blmap_size) {
+				i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, pdata->blmap[cal_value]);
+			} else {
 				pr_err("Out of blmap range, wanted=%d, limit=%d\n", level, pdata->blmap_size);
 				cal_value = level;
-			}
+			} 
 		} else
-			cal_value = level;
-
-
-		if (i2c_bl_dev->percentage_current != 100) {
-			cal_value = (cal_value * i2c_bl_dev->percentage_current)/100;
-		}
-
-		i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, cal_value);
-	} else {
+			i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, cal_value);
+	} else
 		i2c_bl_write_regs(client, pdata->deinit_cmds, pdata->deinit_cmds_size);
-		backlight_status = BL_OFF;
-	}
+		
 	mdelay(1);
-       //pr_info("[LCD][DEBUG] %s : backlight level=%d, cal_value=%d\n", __func__, level, i2c_bl_dev->cal_value);
-	   pr_info(" backlight level=%d, cal_value=%d\n", level, cal_value);
 }
 
 static void i2c_bl_set_main_current_level_no_mapping(struct i2c_client *client, int level)
@@ -327,6 +316,8 @@ static void i2c_bl_backlight_off(struct i2c_client *client)
 	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 	int gpio = pdata->gpio;
 
+	pr_info("%s, on: %d\n", __func__, backlight_status);
+
 	mutex_lock(&backlight_mtx);
 	if (backlight_status == BL_OFF) {
 		mutex_unlock(&backlight_mtx);
@@ -347,31 +338,34 @@ static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level)
 	//struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	//struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
+	
+	if (!client) {
+		pr_warn("%s: not yet enabled\n", __func__);
+		return;
+	}
 
 	if (level > pdata->max_brightness)
 		level = pdata->max_brightness;
 
-//	pr_info("### %s level = (%d) \n ",__func__,level);
-	if (client != NULL) {
-		if (level == 0) {
-			i2c_bl_backlight_off(client);
-		} else {
-			i2c_bl_backlight_on(client, level);
-		}
-	} else {
-		pr_err("%s(): No client\n", __func__);
-	}
+	pr_debug("%s: level %d\n", __func__, level);
+	if (level)
+		i2c_bl_backlight_on(client, level);
+	else
+		i2c_bl_backlight_off(client);
 }
 
 static int bl_set_intensity(struct backlight_device *bd)
 {
-	struct i2c_client *client = to_i2c_client(bd->dev.parent);
+	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(main_i2c_bl_dev->client);
+	int brightness = bd->props.brightness;
 
-	if (backlight_status == BL_ON)
-		i2c_bl_set_main_current_level(client, bd->props.brightness);
+	if ((bd->props.state & BL_CORE_FBBLANK) ||
+			(bd->props.state & BL_CORE_SUSPENDED))
+		brightness = 0;
+	else if (brightness == 0)
+		brightness = i2c_bl_dev->default_brightness;
 
-	cur_main_lcd_level = bd->props.brightness;
-
+	i2c_bl_lcd_backlight_set_level(main_i2c_bl_dev->client, brightness);
 	return 0;
 }
 
@@ -605,8 +599,8 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	i2c_bl_dev->client = i2c_dev;
 	i2c_bl_dev->gpio = pdata->gpio;
 	i2c_bl_dev->min_brightness = pdata->min_brightness;
-	i2c_bl_dev->default_brightness = pdata->default_brightness;
 	i2c_bl_dev->max_brightness = pdata->max_brightness;
+	i2c_bl_dev->default_brightness = pdata->default_brightness;
 	i2c_bl_dev->store_level_used = 0;
 	i2c_bl_dev->delay_for_shaking = 50;
 	i2c_bl_dev->exp_min_value = 150;

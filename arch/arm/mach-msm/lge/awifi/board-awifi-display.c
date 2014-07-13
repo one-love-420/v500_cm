@@ -766,23 +766,24 @@ static char gamma_set_b[?] = {0xC9,
 static char gamma_set_c[?] = {0xCA,
 #endif
 
-static char gamma_set_test0 [3] = {0xf0, 0x40, 0x64};
-static char gamma_set_test1 [3] = {0xf1, 0x40, 0x64};
-static char gamma_set_test2 [3] = {0xf2, 0x40, 0x64};
-static char gamma_set_test3 [3] = {0xf3, 0x40, 0x64};
-static char gamma_set_test4 [3] = {0xf4, 0x40, 0x64};
-static char gamma_set_test5 [3] = {0xf5, 0x40, 0x64};
-static char gamma_set_test6 [3] = {0xf6, 0x40, 0x64};
-static char gamma_set_test7 [3] = {0xf7, 0x40, 0x64};
-static char gamma_set_test8 [3] = {0xf8, 0x40, 0x64};
-static char gamma_set_test9 [3] = {0xf9, 0x40, 0x64};
-static char gamma_set_testa [3] = {0xfa, 0x40, 0x64};
-static char gamma_set_testb [3] = {0xfb, 0x40, 0x64};
-static char gamma_set_testc [3] = {0xfc, 0x40, 0x64};
-static char gamma_set_testd [3] = {0xfd, 0x40, 0x64};
-static char gamma_set_teste [3] = {0xfe, 0x40, 0x64};
-static char gamma_set_testf [3] = {0xff, 0x40, 0x64};
+static char color_enhancement          [33] = {
+                                   0xCA,
+                                   0x01, 0x70, 0x90, 0xA0, 0xB0,
+                                   0x98, 0x90, 0x90, 0x3F, 0x3F,
+                                   0x80, 0x78, 0x08, 0x38, 0x08,
+                                   0x3F, 0x08, 0x90, 0x0C, 0x0C,
+                                   0x0A, 0x06, 0x04, 0x04, 0x00,
+                                   0xC8, 0x10, 0x10, 0x3F, 0x3F,
+                                   0x3F, 0x3F
+                                   };
 
+static char auto_contrast               [7] = {
+                                   0xD8,
+                                   0x00, 0x80, 0x80, 0x40, 0x42,
+                                   0x55
+                                   };
+
+static char sharpening_control          [3] = {0xDD, 0x01, 0x95};
 
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
@@ -790,22 +791,9 @@ static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
 	
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test0), gamma_set_test0},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test1), gamma_set_test1},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test2), gamma_set_test2},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test3), gamma_set_test3},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test4), gamma_set_test4},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test5), gamma_set_test5},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test6), gamma_set_test6},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test7), gamma_set_test7},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test8), gamma_set_test8},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_test9), gamma_set_test9},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_testa), gamma_set_testa},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_testb), gamma_set_testb},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_testc), gamma_set_testc},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_testd), gamma_set_testd},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_teste), gamma_set_teste},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_set_testf), gamma_set_testf},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(color_enhancement), color_enhancement},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(auto_contrast), auto_contrast},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(sharpening_control), sharpening_control},
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
