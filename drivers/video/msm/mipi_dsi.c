@@ -104,15 +104,10 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	 * Desctiption: change to DSI_CMD_MODE since it needed to
 	 * tx DCS dsiplay off command to panel
 	 */
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_HD_PT)\
-       || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_FHD) \
-       || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA)
-	/* For power sequence of LGIT Panel.  */
-#else /* QCT Orignial */
+#if defined(CONFIG_DSI_VIDEO_MODE)
+#else
 	mipi_dsi_op_mode_config(DSI_CMD_MODE);
 #endif
-	mipi_dsi_op_mode_config(DSI_CMD_MODE);
-
 	if (mfd->panel_info.type == MIPI_CMD_PANEL) {
 		if (pinfo->lcd.vsync_enable) {
 			if (pinfo->lcd.hw_vsync_mode && vsync_gpio >= 0) {

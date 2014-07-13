@@ -112,7 +112,7 @@ static unsigned int *above_hispeed_delay = default_above_hispeed_delay;
 static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
 
 /* 1000ms - 1s */
-#define DEFAULT_BOOSTPULSE_DURATION 500000
+#define DEFAULT_BOOSTPULSE_DURATION 350000
 /* Duration of a boot pulse in usecs */
 static int boostpulse_duration_val = DEFAULT_BOOSTPULSE_DURATION;
 /* End time of boost pulse in ktime converted to usecs */
@@ -221,6 +221,7 @@ static unsigned int freq_to_above_hispeed_delay(unsigned int freq)
 	return ret;
 }
 
+#if 0
 static unsigned int freq_to_targetload(unsigned int freq)
 {
 	int i;
@@ -327,6 +328,16 @@ static unsigned int choose_freq(
 
 	return freq;
 }
+#endif
+
+static unsigned int calc_freq(struct cpufreq_interactive_cpuinfo *pcpu, 
+	unsigned int load)
+{
+	unsigned int max = pcpu->policy->cpuinfo.max_freq;
+	unsigned int min = pcpu->policy->cpuinfo.min_freq;
+
+	return min + load * (max - min) / 100;
+}
 
 static u64 update_load(int cpu)
 {
@@ -400,7 +411,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 			new_freq = hispeed_freq;
 		else
 		{
-			new_freq = choose_freq(pcpu, loadadjfreq);
+			new_freq = calc_freq(pcpu, cpu_load);
 
 			if (new_freq < hispeed_freq)
 				new_freq = hispeed_freq;
@@ -412,7 +423,9 @@ static void cpufreq_interactive_timer(unsigned long data)
 	}
 	else
 	{
-		new_freq = choose_freq(pcpu, loadadjfreq);
+		new_freq = calc_freq(pcpu, cpu_load);
+		if (new_freq > hispeed_freq && pcpu->target_freq < hispeed_freq)
+			new_freq = hispeed_freq;
 
 		if (sync_freq && new_freq < sync_freq) {
 
@@ -450,7 +463,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	pcpu->hispeed_validate_time = now;
 
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
-					   new_freq, CPUFREQ_RELATION_L,
+					   new_freq, CPUFREQ_RELATION_C,
 					   &index)) {
 		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 		goto rearm;
