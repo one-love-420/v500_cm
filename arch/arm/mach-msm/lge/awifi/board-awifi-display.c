@@ -766,34 +766,11 @@ static char gamma_set_b[?] = {0xC9,
 static char gamma_set_c[?] = {0xCA,
 #endif
 
-static char color_enhancement          [33] = {
-                                   0xCA,
-                                   0x01, 0x70, 0x90, 0xA0, 0xB0,
-                                   0x98, 0x90, 0x90, 0x3F, 0x3F,
-                                   0x80, 0x78, 0x08, 0x38, 0x08,
-                                   0x3F, 0x08, 0x90, 0x0C, 0x0C,
-                                   0x0A, 0x06, 0x04, 0x04, 0x00,
-                                   0xC8, 0x10, 0x10, 0x3F, 0x3F,
-                                   0x3F, 0x3F
-                                   };
-
-static char auto_contrast               [7] = {
-                                   0xD8,
-                                   0x00, 0x80, 0x80, 0x40, 0x42,
-                                   0x55
-                                   };
-
-static char sharpening_control          [3] = {0xDD, 0x01, 0x95};
-
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
-	
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(color_enhancement), color_enhancement},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(auto_contrast), auto_contrast},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(sharpening_control), sharpening_control},
 };
 
 static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
