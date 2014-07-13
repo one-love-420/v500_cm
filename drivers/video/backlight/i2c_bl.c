@@ -237,6 +237,7 @@ void i2c_bl_backlight_on(struct i2c_client *client, int level)
 
 	mutex_lock(&backlight_mtx);
 	if (backlight_status == BL_OFF) {
+		pr_info("%s, ++ lm3530_backlight_on  \n",__func__);
 		i2c_bl_hw_reset(client);
 		i2c_bl_write_regs(client, pdata->init_cmds, pdata->init_cmds_size);
 	}
@@ -339,7 +340,7 @@ static int i2c_bl_resume(struct i2c_client *client)
 
 static int i2c_bl_suspend(struct i2c_client *client, pm_message_t state)
 {
-	pr_debug("[LCD][DEBUG] %s: new state: %d\n", __func__, state.event);
+	pr_info("%s: new state: %d\n", __func__, state.event);
 
 	i2c_bl_backlight_off(client);
 
@@ -365,12 +366,12 @@ static ssize_t lcd_backlight_store_on_off(struct device *dev, struct device_attr
 
 	on_off = simple_strtoul(buf, NULL, 10);
 
-	pr_debug("[LCD][DEBUG] %d", on_off);
+	pr_info("%d", on_off);
 
 	if (on_off == 1) {
 		i2c_bl_resume(client);
 	} else if (on_off == 0)
-	    i2c_bl_suspend(client, PMSG_SUSPEND);
+		i2c_bl_suspend(client, PMSG_SUSPEND);
 
 	return count;
 
@@ -393,21 +394,13 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	int err = 0;
 
 	pdata = i2c_dev->dev.platform_data;
+	if (!pdata)
+		return -ENODEV;
 
 	i2c_bl_dev = kzalloc(sizeof(struct i2c_bl_device), GFP_KERNEL);
 	if (!i2c_bl_dev) {
 		dev_err(&i2c_dev->dev, "fail alloc for i2c_bl_device\n");
 		return -ENOMEM;
-	}
-
-	pr_info("[LCD][DEBUG] %s: gpio = %d\n", __func__,pdata->gpio);
-
-	if (gpio_is_valid(i2c_bl_dev->gpio)) {
-		err = gpio_request(i2c_bl_dev->gpio, "i2c_bl reset");
-		if (err < 0) {
-			dev_err(&i2c_dev->dev, "failed to request gpio\n");
-			goto err_gpio_request;
-		}
 	}
 
 	main_i2c_bl_dev = i2c_bl_dev;
@@ -439,10 +432,18 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	if(lge_get_boot_cable_type() == LGE_BOOT_LT_CABLE_56K || lge_get_boot_cable_type() == LGE_BOOT_LT_CABLE_910K || lge_get_boot_cable_type() == LGE_BOOT_LT_CABLE_130K)
 	{
 		pr_info("is_factory_cable\n");
-	    pdata->factory_mode = 1;
+		pdata->factory_mode = 1;
 		pdata->factory_brightness = 3;
 	}
     	else pdata->factory_mode = 0;
+
+	if (gpio_is_valid(i2c_bl_dev->gpio)) {
+		err = gpio_request(i2c_bl_dev->gpio, "i2c_bl reset");
+		if (err < 0) {
+			dev_err(&i2c_dev->dev, "failed to request gpio\n");
+			goto err_gpio_request;
+		}
+	}
 
 	err = device_create_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
 	if (err < 0) {
