@@ -107,14 +107,6 @@ static const struct input_device_id boost_ids[] = {
 			BIT_MASK(ABS_MT_POSITION_X) |
 			BIT_MASK(ABS_MT_POSITION_Y) },
 	},
-	/* touchpad */
-	{
-		.flags = INPUT_DEVICE_ID_MATCH_KEYBIT |
-			INPUT_DEVICE_ID_MATCH_ABSBIT,
-		.keybit = { [BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH) },
-		.absbit = { [BIT_WORD(ABS_X)] =
-			BIT_MASK(ABS_X) | BIT_MASK(ABS_Y) },
-	},
 	/* Keypad */
 	{
 		.flags = INPUT_DEVICE_ID_MATCH_EVBIT,
@@ -131,12 +123,12 @@ static struct input_handler boost_input_handler = {
 	.id_table       = boost_ids,
 };
 
+#pragma GCC diagnostic ignored "-Wunused-result"
 static int init(void)
 {
-	int ig;
 	INIT_WORK(&touchboost_inputopen.inputopen_work, boost_input_open);
 
-	ig = input_register_handler(&boost_input_handler);
+	input_register_handler(&boost_input_handler);
 
 	return 0;
 }
