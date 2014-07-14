@@ -79,8 +79,7 @@ static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 static unsigned int sampling_down_factor = DEFAULT_SAMPLING_DOWN_FACTOR;
 
 /* Target load.  Lower values result in higher CPU speeds. */
-#define DEFAULT_TARGET_LOAD 90
-static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
+static unsigned int default_target_loads[5] = {85, 1300000, 90, 1400000, 70};
 static spinlock_t target_loads_lock;
 static unsigned int *target_loads = default_target_loads;
 static int ntarget_loads = ARRAY_SIZE(default_target_loads);
@@ -104,9 +103,7 @@ static unsigned long timer_rate = DEFAULT_TIMER_RATE;
  * Wait this long before raising speed above hispeed, by default a single
  * timer interval.
  */
-#define DEFAULT_ABOVE_HISPEED_DELAY DEFAULT_TIMER_RATE
-static unsigned int default_above_hispeed_delay[] = {
-	DEFAULT_ABOVE_HISPEED_DELAY };
+static unsigned int default_above_hispeed_delay[5] = {50000, 1300000, 60000, 1400000, 40000};
 static spinlock_t above_hispeed_delay_lock;
 static unsigned int *above_hispeed_delay = default_above_hispeed_delay;
 static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
@@ -116,7 +113,7 @@ static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
 /* Duration of a boot pulse in usecs */
 static int boostpulse_duration_val = DEFAULT_BOOSTPULSE_DURATION;
 /* End time of boost pulse in ktime converted to usecs */
-//static unsigned long boostpulse_endtime;
+static unsigned long boostpulse_endtime;
 bool boosted;
 
 /*
@@ -133,15 +130,12 @@ static bool io_is_busy = true;
  * touched. input_boost needs to be enabled.
  */
 #define DEFAULT_INPUT_BOOST_FREQ 1242000
-//int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
-//static struct workqueue_struct *input_wq;
-//static struct work_struct input_work;
-
-//#define DEFAULT_BOOSTED_TIME_INTERVAL 100
-//unsigned long boosted_time;
-
 int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
-extern u64 last_input_time;
+static struct workqueue_struct *input_wq;
+static struct work_struct input_work;
+
+#define DEFAULT_BOOSTED_TIME_INTERVAL 100
+unsigned long boosted_time;
 
 #define CPU_SYNC_FREQ 702000
 
@@ -404,7 +398,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	cpu_load = loadadjfreq / pcpu->target_freq;
 
 	pcpu->prev_load = cpu_load;
-	boosted = now < (last_input_time + boostpulse_duration_val);
+	boosted = now < boostpulse_endtime;
 
 	cpufreq_notify_utilization(pcpu->policy, cpu_load);
 
@@ -670,7 +664,6 @@ static int cpufreq_interactive_speedchange_task(void *data)
 	return 0;
 }
 
-#if 0
 static void cpufreq_interactive_boost(struct work_struct *work)
 {
 	int i;
@@ -721,7 +714,7 @@ static void cpufreq_interactive_boost(struct work_struct *work)
 
 	boosted_time = jiffies;
 }
-#endif
+
 static int cpufreq_interactive_notifier(
 	struct notifier_block *nb, unsigned long val, void *data)
 {
@@ -1095,7 +1088,6 @@ static ssize_t store_timer_slack(
 
 define_one_global_rw(timer_slack);
 
-#if 0
 static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 				const char *buf, size_t count)
 {
@@ -1114,7 +1106,7 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 
 static struct global_attr boostpulse =
 	__ATTR(boostpulse, 0664, NULL, store_boostpulse);
-#endif
+
 static ssize_t show_boostpulse_duration(
 	struct kobject *kobj, struct attribute *attr, char *buf)
 {
@@ -1239,7 +1231,7 @@ static struct attribute *interactive_attributes[] = {
 	&timer_rate_attr.attr,
 	&input_boost_freq_attr.attr,
 	&timer_slack.attr,
-	//&boostpulse.attr,
+	&boostpulse.attr,
 	&boostpulse_duration.attr,
 	&io_is_busy_attr.attr,
 	&sampling_down_factor_attr.attr,
@@ -1309,8 +1301,8 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			up_write(&pcpu->enable_sem);
 		}
 
-		//if (!boosted_time)
-		//	boosted_time = jiffies;
+		if (!boosted_time)
+			boosted_time = jiffies;
 
 		/*
 		 * Do not register the idle hook and create sysfs
@@ -1447,12 +1439,12 @@ static int __init cpufreq_interactive_init(void)
 		init_rwsem(&pcpu->enable_sem);
 	}
 
-	//input_wq = alloc_workqueue("input_wq", 0, 1);
+	input_wq = alloc_workqueue("input_wq", 0, 1);
 
-	//if (!input_wq)
-	//	return -EINVAL;
+	if (!input_wq)
+		return -EINVAL;
 
-	//INIT_WORK(&input_work, cpufreq_interactive_boost);
+	INIT_WORK(&input_work, cpufreq_interactive_boost);
 
 	spin_lock_init(&target_loads_lock);
 	spin_lock_init(&speedchange_cpumask_lock);
@@ -1484,7 +1476,7 @@ static void __exit cpufreq_interactive_exit(void)
 	cpufreq_unregister_governor(&cpufreq_gov_interactive);
 	kthread_stop(speedchange_task);
 	put_task_struct(speedchange_task);
-	//destroy_workqueue(input_wq);
+	destroy_workqueue(input_wq);
 }
 
 module_exit(cpufreq_interactive_exit);

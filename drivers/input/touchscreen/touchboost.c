@@ -24,7 +24,7 @@
 #include <linux/input.h>
 #include <linux/time.h>
 
-#define MIM_TIME_INTERVAL_US (150 * USEC_PER_MSEC)
+#define MIM_TIME_INTERVAL_MS 150
 
 /*
  * Use this variable in your governor of choice to calculate when the cpufreq
@@ -33,34 +33,15 @@
  */
 u64 last_input_time;
 
-struct touchboost_inputopen {
-	struct input_handle *handle;
-	struct work_struct inputopen_work;
-} touchboost_inputopen;
-
 static void boost_input_event(struct input_handle *handle,
                 unsigned int type, unsigned int code, int value)
 {
-	u64 now;
+	u64 now = ktime_to_us(ktime_get());
 
-	now = ktime_to_us(ktime_get());
-
-	if (now - last_input_time < MIM_TIME_INTERVAL_US)
+	if (now - last_input_time < MIM_TIME_INTERVAL_MS)
 		return;
 
 	last_input_time = ktime_to_us(ktime_get());
-}
-
-static void boost_input_open(struct work_struct *w)
-{
-	struct touchboost_inputopen *io =
-		container_of(w, struct touchboost_inputopen, inputopen_work);
-
-	int error;
-
-	error = input_open_device(io->handle);
-	if (error)
-		input_unregister_handle(io->handle);
 }
 
 static int boost_input_connect(struct input_handler *handler,
@@ -75,17 +56,21 @@ static int boost_input_connect(struct input_handler *handler,
 
 	handle->dev = dev;
 	handle->handler = handler;
-	handle->name = "touchboost";
+	handle->name = "cpufreq";
 
 	error = input_register_handle(handle);
 	if (error)
-		goto err;
+		goto err1;
 
-	touchboost_inputopen.handle = handle;
-	schedule_work(&touchboost_inputopen.inputopen_work);
+	error = input_open_device(handle);
+	if (error)
+		goto err2;
+
 	return 0;
+err2:
+	input_unregister_handle(handle);
 
-err:
+err1:
 	kfree(handle);
 	return error;
 }
@@ -126,10 +111,7 @@ static struct input_handler boost_input_handler = {
 #pragma GCC diagnostic ignored "-Wunused-result"
 static int init(void)
 {
-	INIT_WORK(&touchboost_inputopen.inputopen_work, boost_input_open);
-
 	input_register_handler(&boost_input_handler);
-
 	return 0;
 }
 late_initcall(init);
