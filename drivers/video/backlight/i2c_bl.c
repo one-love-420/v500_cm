@@ -49,10 +49,6 @@ struct i2c_bl_device {
 	int blmap_size;
 };
 
-static int cur_main_lcd_level;
-static int saved_main_lcd_level;
-static int backlight_status = BL_ON;
-
 static struct i2c_bl_device *main_i2c_bl_dev;
 
 static const struct i2c_device_id i2c_bl_id[] = {
@@ -63,7 +59,6 @@ static const struct i2c_device_id i2c_bl_id[] = {
 static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val);
 static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
-static int i2c_bl_set_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size, unsigned char value);
 
 static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level);
 
@@ -77,6 +72,10 @@ void i2c_bl_lcd_backlight_set_level_export(int level)
 	}
 }
 EXPORT_SYMBOL(i2c_bl_lcd_backlight_set_level_export);
+
+static int cur_main_lcd_level;
+static int saved_main_lcd_level;
+static int backlight_status = BL_ON;
 
 static void i2c_bl_hw_reset(struct i2c_client *client)
 {
@@ -150,32 +149,6 @@ static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cm
 	return 0;
 }
 
-static int i2c_bl_set_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size, unsigned char value)
-{
-	if(bl_cmds!=NULL && size>0) {
-		while (size--) {
-			unsigned char addr, ovalue, mask;
-
-			addr = bl_cmds->addr;
-			mask = bl_cmds->mask;
-
-			bl_cmds++;
-
-			if(mask==0)
-				continue;
-
-			if(mask==0xff)
-				i2c_bl_write_reg(client, addr, value);
-			else {
-				i2c_bl_read_reg(client, addr, &ovalue);
-				i2c_bl_write_reg(client, addr, (ovalue&(~mask))|(value&mask));
-			}
-		}
-	}
-
-	return 0;
-}
-
 static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 {
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
@@ -197,38 +170,17 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
  
 		if (i2c_bl_dev->blmap) {
 			if (cal_value < i2c_bl_dev->blmap_size) {
-				i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, i2c_bl_dev->blmap[cal_value]);
+				i2c_bl_write_reg(client, 0x70, i2c_bl_dev->blmap[cal_value]);
 			} else {
 				pr_err("Out of blmap range, wanted=%d, limit=%d\n", level, i2c_bl_dev->blmap_size);
 				cal_value = level;
 			} 
 		} else
-			i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, cal_value);
+			i2c_bl_write_reg(client, 0x70, cal_value);
 	} else
 		i2c_bl_write_regs(client, pdata->deinit_cmds, pdata->deinit_cmds_size);
 		
 	mdelay(1);
-}
-
-static void i2c_bl_set_main_current_level_no_mapping(struct i2c_client *client, int level)
-{
-	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	struct i2c_bl_platform_data *pdata = client->dev.platform_data;
-
-	if (level > 255)
-		level = 255;
-	else if (level < 0)
-		level = 0;
-
-	cur_main_lcd_level = level;
-	i2c_bl_dev->bl_dev->props.brightness = cur_main_lcd_level;
-
-	if (level != 0) {
-		i2c_bl_set_regs(client, pdata->set_brightness_cmds, pdata->set_brightness_cmds_size, level);
-	} else {
-		i2c_bl_write_regs(client, pdata->deinit_cmds, pdata->deinit_cmds_size);
-		backlight_status = BL_OFF;
-	}
 }
 
 void i2c_bl_backlight_on(struct i2c_client *client, int level)
@@ -325,9 +277,7 @@ static ssize_t lcd_backlight_store_level(struct device *dev, struct device_attri
 		return -EINVAL;
 
 	level = simple_strtoul(buf, NULL, 10);
-
-	i2c_bl_set_main_current_level_no_mapping(client, level);
-	pr_debug("[LCD][DEBUG] write %d direct to backlight register\n", level);
+	i2c_bl_set_main_current_level(client, level);
 
 	return count;
 }
@@ -368,9 +318,9 @@ static ssize_t lcd_backlight_store_on_off(struct device *dev, struct device_attr
 
 	pr_info("%d", on_off);
 
-	if (on_off == 1) {
+	if (on_off == 1)
 		i2c_bl_resume(client);
-	} else if (on_off == 0)
+	else if (on_off == 0)
 		i2c_bl_suspend(client, PMSG_SUSPEND);
 
 	return count;
@@ -478,7 +428,6 @@ static int i2c_bl_remove(struct i2c_client *client)
 
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_level);
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_backlight_on_off);
-	
 	i2c_set_clientdata(client, NULL);
 
 	if (gpio_is_valid(i2c_bl_dev->gpio))

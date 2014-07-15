@@ -66,7 +66,7 @@ static int __init mipi_video_lgit_wuxga_pt_init(void)
 	pinfo.lcdc.underflow_clr = 0x0;   /* white */
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.bl_max = 0xFF;
-	pinfo.bl_min = 0x8C;
+	pinfo.bl_min = 0x8F;
 	pinfo.fb_num = 2;
 
 	pinfo.mipi.mode = DSI_VIDEO_MODE;
@@ -95,8 +95,8 @@ static int __init mipi_video_lgit_wuxga_pt_init(void)
 	pinfo.mipi.mdp_trigger = 0;        /* DSI_CMD_TRIGGER_SW */
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
 	pinfo.mipi.dsi_phy_db = &dsi_video_mode_phy_db_LD083WU1;
-	
 	ret = mipi_lgit_device_register(&pinfo, MIPI_DSI_PRIM, MIPI_DSI_PANEL_WUXGA);
+
 	if (ret)
 		pr_err("%s: failed to register device!\n", __func__);
 
