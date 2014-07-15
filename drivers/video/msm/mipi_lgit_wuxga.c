@@ -36,9 +36,6 @@ struct dsi_cmd_desc new_color_vals[33];
 #endif
 
 static int __init mipi_lgit_lcd_init(void);
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-static bool lgit_lcd_cabc_state(void);
-#endif
 
 static int check_stable_lcd_on = 1;
 
@@ -69,9 +66,7 @@ static int mipi_stable_lcd_on(struct platform_device *pdev)
 int mipi_lgit_lcd_on(struct platform_device *pdev)
 {
 	int cnt = 0;
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	bool cabc_off_state = 1;
-#endif
+
 	struct msm_fb_data_type *mfd;
 
 	if (check_stable_lcd_on)
@@ -85,7 +80,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 
 	pr_info("%s started \n", __func__);
 
-#ifdef CONFIG_GAMMA_CONTROL
+#if defined(CONFIG_GAMMA_CONTROL)
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		new_color_vals,
 		mipi_lgit_pdata->power_on_set_size_1);
@@ -96,36 +91,6 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 #endif
 	if (cnt < 0)
 		return cnt;
-
-
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	cabc_off_state = lgit_lcd_cabc_state();
-
-	if (cabc_off_state == 1) {
-		if ((mipi_lgit_pdata->power_on_set_3_noCABC != NULL) &&
-			(mipi_lgit_pdata->power_on_set_size_3_noCABC > 0)) {
-			cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
-				mipi_lgit_pdata->power_on_set_3_noCABC,
-				mipi_lgit_pdata->power_on_set_size_3_noCABC);
-
-			if (cnt < 0)
-				return cnt;
-			pr_info("%s : CABC OFF\n", __func__);
-		}
-	} else {
-		if ((mipi_lgit_pdata->power_on_set_3 != NULL) &&
-			(mipi_lgit_pdata->power_on_set_size_3 > 0)) {
-			cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
-				mipi_lgit_pdata->power_on_set_3,
-				mipi_lgit_pdata->power_on_set_size_3);
-
-			if (cnt < 0)
-				return cnt;
-
-			pr_info("%s : CABC ON\n", __func__);
-		}
-	}
-#endif
 
 	cnt = mipi_dsi_cmds_tx(&lgit_tx_buf,
 		mipi_lgit_pdata->power_on_set_2,
@@ -227,36 +192,8 @@ void update_vals(int type, int array_pos, int val)
 }
 #endif
 
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-static ssize_t lgit_lcd_show_cabc_off(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	ssize_t ret = snprintf(buf, PAGE_SIZE, "%d\n", mipi_lgit_pdata->cabc_off);
-	pr_info("%s: '%d'\n", __func__, mipi_lgit_pdata->cabc_off);
-	return ret;
-}
-
-static ssize_t lgit_lcd_set_cabc_off(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-{
-	if (!count)
-		return -EINVAL;
-
-	mipi_lgit_pdata->cabc_off = simple_strtoul(buf, NULL, 10);
-	pr_info("%s: cabc (%s)\n", __func__, mipi_lgit_pdata->cabc_off ? "OFF" : "ON");
-	return count;
-}
-DEVICE_ATTR(cabc_off, 0644, lgit_lcd_show_cabc_off, lgit_lcd_set_cabc_off);
-
-static bool lgit_lcd_cabc_state(void)
-{
-	return mipi_lgit_pdata->cabc_off;
-}
-#endif
-
 static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 {
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-    int err = 0;
-#endif
 	if (pdev->id == 0) {
 		mipi_lgit_pdata = pdev->dev.platform_data;
 		return 0;
@@ -269,12 +206,6 @@ static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 
 	msm_fb_add_device(pdev);
 
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	err = device_create_file(&pdev->dev, &dev_attr_cabc_off);
-	if(err < 0)
-		pr_err("%s : Cannot create the sysfs\n" , __func__);
-#endif
-
 	return 0;
 }
 
@@ -286,8 +217,8 @@ static struct platform_driver this_driver = {
 };
 
 static struct msm_fb_panel_data lgit_panel_data = {
-	.on		= mipi_lgit_lcd_on,
-	.off		= mipi_lgit_lcd_off,
+	.on	= mipi_lgit_lcd_on,
+	.off	= mipi_lgit_lcd_off,
 	.set_backlight = mipi_lgit_set_backlight_board,
 };
 

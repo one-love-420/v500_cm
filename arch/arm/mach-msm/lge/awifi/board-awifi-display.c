@@ -234,13 +234,8 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
 	.mdp_max_bw = 2000000000u,
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT)
 	.mdp_bw_ab_factor = 115,
 	.mdp_bw_ib_factor = 290,
-#else
-	.mdp_bw_ab_factor = 200,
-	.mdp_bw_ib_factor = 210,
-#endif
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 	.mdp_rev = MDP_REV_44,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -367,7 +362,6 @@ struct lcd_delay {
 	unsigned iovcc_lcdvdd;
 };
 
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT)
 static struct lcd_delay lcd_power_sequence_delay_LD083WU1 = {
 	.lcdvdd_lcdvdd = 400, /* 400 ms  */
 	.lcdvdd_iovcc = 0, /* no delay */
@@ -379,7 +373,6 @@ static struct lcd_delay lcd_power_sequence_delay_LD083WU1 = {
 };
 
 static struct lcd_delay *lcd_power_sequence_delay = &lcd_power_sequence_delay_LD083WU1;
-#endif
 
 static bool dsi_power_on = false;
 static int mipi_dsi_panel_power(int on)
@@ -548,14 +541,8 @@ static struct msm_bus_vectors dtv_bus_def_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 		.ab = 2000000000,
 		.ib = 2000000000,
-#else
-		.ab = 566092800 * 2,
-		.ib = 707616000 * 2,
-#endif
 	},
 };
 
@@ -749,39 +736,50 @@ static char set_gamma_curve		[2] = {0x26, 0x01};
 static char set_pixel_format		[2] = {0x3A, 0x70};
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
-/*                   */
+/* Enable CABC block */
 static char cabc_enable_LD083WU1	[2] = {0xb9, 0x01};
 
-/*                    */
-static char cabc_disable_LD083WU1	[2] = {0xb9, 0x00};
+/* Disable CABC block */
+//static char cabc_disable_LD083WU1	[2] = {0xb9, 0x00};
 
-/*              */
+/* Set PWM duty */
 static char set_pwm_duty_LD083WU1	[2] = {0xbb, 0xff};
-                                                  
+
+/* Enable CE algorithm */
+//static char ce_enable_LD083WU1		[2] = {0xb8, 0x01};
+
+/* Disable CE algorithm */
+//static char ce_disable_LD083WU1		[2] = {0xb8, 0x00};
 #endif
 
-static char gamma0[10] = {0xb0, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma1[10] = {0xb1, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma2[10] = {0xb2, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma3[10] = {0xb3, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma4[10] = {0xb4, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gamma5[10] = {0xb5, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gamma6[10] = {0xb6, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma7[10] = {0xb7, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma8[10] = {0xb8, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gamma9[10] = {0xf9, 0x40, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
-static char gammaa[10] = {0xba, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gammab[10] = {0xfb, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gammac[10] = {0xbc, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gammad[10] = {0xbd, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gammae[10] = {0xbe, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
-static char gammaf[10] = {0xbf, 0x20, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gamma0[10] = {0xc0, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma1[10] = {0xc1, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma2[10] = {0xc2, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma3[10] = {0xc3, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma4[10] = {0xc4, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gamma5[10] = {0xc5, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gamma6[10] = {0xc6, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma7[10] = {0xc7, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma8[10] = {0xc8, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gamma9[10] = {0xc9, 0x00, 0x44, 0x76, 0x01, 0x00, 0x00, 0x30, 0x20, 0x01};
+static char gammaa[10] = {0xca, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gammab[10] = {0xcb, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gammac[10] = {0xcc, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gammad[10] = {0xcd, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gammae[10] = {0xce, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
+static char gammaf[10] = {0xcf, 0x00, 0x23, 0x74, 0x00, 0x1F, 0x10, 0x50, 0x33, 0x03};
 
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
+
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pwm_duty_LD083WU1),set_pwm_duty_LD083WU1},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_enable_LD083WU1),cabc_enable_LD083WU1},
+	//{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(ce_enable_LD083WU1),ce_enable_LD083WU1},
+#endif
 
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma0), gamma0},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma1), gamma1},
@@ -806,20 +804,6 @@ static struct dsi_cmd_desc lgit_power_on_set_2_LD083WU1[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 };
 
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-static struct dsi_cmd_desc lgit_power_on_set_3_LD083WU1[] = {
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pwm_duty_LD083WU1),set_pwm_duty_LD083WU1},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_enable_LD083WU1),cabc_enable_LD083WU1},
-	//{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(ce_enable_LD083WU1),ce_enable_LD083WU1},
-};
-
-static struct dsi_cmd_desc lgit_power_on_set_3_LD083WU1_noCABC[] = {
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pwm_duty_LD083WU1),set_pwm_duty_LD083WU1},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_enable_LD083WU1),cabc_disable_LD083WU1},
-};
-
-#endif
-
 static struct dsi_cmd_desc lgit_power_off_set_LD083WU1[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_off), display_off},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(enter_sleep_mode), enter_sleep_mode},
@@ -833,13 +817,9 @@ static struct msm_panel_common_pdata mipi_lgit_pdata_LD083WU1 = {
 	.backlight_level = mipi_lgit_backlight_level,
 	.power_on_set_1 = lgit_power_on_set_1_LD083WU1,
 	.power_on_set_2 = lgit_power_on_set_2_LD083WU1,
-	.power_on_set_3 = lgit_power_on_set_3_LD083WU1,
-	.power_on_set_3_noCABC = lgit_power_on_set_3_LD083WU1_noCABC,
 
 	.power_on_set_size_1 = ARRAY_SIZE(lgit_power_on_set_1_LD083WU1),
 	.power_on_set_size_2 = ARRAY_SIZE(lgit_power_on_set_2_LD083WU1),
-	.power_on_set_size_3 = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1),
-	.power_on_set_size_3_noCABC = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1_noCABC),
 
 	.power_off_set_1 = lgit_power_off_set_LD083WU1,
 	.power_off_set_2 = lgit_shutdown_set_LD083WU1,
@@ -847,25 +827,6 @@ static struct msm_panel_common_pdata mipi_lgit_pdata_LD083WU1 = {
 	.power_off_set_size_1 = ARRAY_SIZE(lgit_power_off_set_LD083WU1),
 	.power_off_set_size_2 = ARRAY_SIZE(lgit_shutdown_set_LD083WU1),
 };
-
-static struct msm_panel_common_pdata mipi_lgit_pdata_LD083WU1_noCABC = {
-	.backlight_level = mipi_lgit_backlight_level,
-	.power_on_set_1 = lgit_power_on_set_1_LD083WU1,
-	.power_on_set_size_1 = ARRAY_SIZE(lgit_power_on_set_1_LD083WU1),
-	.power_on_set_2 = lgit_power_on_set_2_LD083WU1,
-	.power_on_set_size_2 = ARRAY_SIZE(lgit_power_on_set_2_LD083WU1),
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	.power_on_set_3 = lgit_power_on_set_3_LD083WU1_noCABC,
-	.power_on_set_size_3 = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1_noCABC),
-	.power_on_set_3_noCABC = lgit_power_on_set_3_LD083WU1_noCABC,
-	.power_on_set_size_3_noCABC = ARRAY_SIZE(lgit_power_on_set_3_LD083WU1_noCABC),
-#endif
-	.power_off_set_1 = lgit_power_off_set_LD083WU1,
-	.power_off_set_size_1 = ARRAY_SIZE(lgit_power_off_set_LD083WU1),
-	.power_off_set_2 = lgit_shutdown_set_LD083WU1,
-	.power_off_set_size_2 = ARRAY_SIZE(lgit_shutdown_set_LD083WU1),
-};
-
 
 static struct platform_device mipi_dsi_lgit_panel_device = {
 	.name = "mipi_lgit",
@@ -874,60 +835,25 @@ static struct platform_device mipi_dsi_lgit_panel_device = {
 		.platform_data = &mipi_lgit_pdata_LD083WU1,
 	}
 };
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-static struct platform_device mipi_dsi_lgit_panel_device_noCABC = {
-	.name = "mipi_lgit",
-	.id = 0,
-	.dev = {
-		.platform_data = &mipi_lgit_pdata_LD083WU1_noCABC,
-	}
-};
-#endif
+
 /* LGE_CHANGE_END:ilhwan.ahn@lge.com, 2013.05.22, Change the initial sest for AWiFi */
 
 static struct platform_device *awifi_panel_devices[] __initdata = {
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 	&mipi_dsi_lgit_panel_device,
-#endif
 #ifdef CONFIG_LGE_KCAL
 	&kcal_platrom_device,
 #endif
 };
-
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-static struct platform_device *awifi_panel_devices_noCABC[] __initdata = {
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) ||\
-	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
-	&mipi_dsi_lgit_panel_device_noCABC,
-#endif
-#ifdef CONFIG_LGE_KCAL
-	&kcal_platrom_device,
-#endif
-};
-#endif
 
 void __init apq8064_init_fb(void)
 {
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	hw_rev_type lge_board_rev = lge_get_board_revno();
-#endif
-
 	platform_device_register(&msm_fb_device);
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 	platform_device_register(&wfd_panel_device);
 	platform_device_register(&wfd_device);
 #endif /* CONFIG_FB_MSM_WRITEBACK_MSM_PANEL */
 
-#if defined(CONFIG_LGE_BACKLIGHT_CABC)
-	if (lge_board_rev > HW_REV_1_0) {
-	    platform_add_devices(awifi_panel_devices,ARRAY_SIZE(awifi_panel_devices));
-    } else {
-        platform_add_devices(awifi_panel_devices_noCABC,ARRAY_SIZE(awifi_panel_devices_noCABC));
-    }
-#else
-    platform_add_devices(awifi_panel_devices,ARRAY_SIZE(awifi_panel_devices));
-#endif
+   	platform_add_devices(awifi_panel_devices,ARRAY_SIZE(awifi_panel_devices));
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
 	platform_device_register(&hdmi_msm_device);
