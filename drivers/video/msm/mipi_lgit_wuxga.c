@@ -97,11 +97,10 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 		mipi_lgit_pdata->power_on_set_size_2);
 	if (cnt < 0)
 		return cnt;
-#if defined(CONFIG_DSI_VIDEO_MODE)
+
 	mipi_dsi_op_mode_config(DSI_VIDEO_MODE);
-#else
-	mipi_dsi_op_mode_config(DSI_CMD_MODE);
-#endif
+	//mipi_dsi_op_mode_config(DSI_CMD_MODE);
+
 	pr_info("%s ended \n", __func__);
 
 	return 0;

@@ -727,7 +727,7 @@ static char enter_sleep_mode            [2] = {0x10, 0x00};
 static char display_on                  [2] = {0x29, 0x00};
 static char display_off                 [2] = {0x28, 0x00};
 
-static char set_address_mode            [2] = {0x36, 0x01};
+static char set_address_mode            [2] = {0x36, 0x40}; //0x01 in cmd_mode
 static char set_gamma_curve		[2] = {0x26, 0x01};
 
 #define PF_16BIT 0x50
