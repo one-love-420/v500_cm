@@ -223,7 +223,6 @@ static DEVICE_ATTR(wcnss_version, S_IRUSR,
 /* interface to reset Riva by sending the reset interrupt */
 void wcnss_reset_intr(void)
 {
-	wcnss_log_ccpu_regs();
 	wmb();
 	__raw_writel(1 << 24, MSM_APCS_GCC_BASE + 0x8);
 }
