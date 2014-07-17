@@ -34,6 +34,8 @@
 #define BL_ON        1
 #define BL_OFF       0
 
+unsigned int basekk_val	= 0;
+
 static DEFINE_MUTEX(backlight_mtx);
 
 struct i2c_bl_device {
@@ -56,9 +58,9 @@ static const struct i2c_device_id i2c_bl_id[] = {
 	{ },
 };
 
-static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
+//static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val);
-static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
+//static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
 
 static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level);
 
@@ -90,6 +92,7 @@ static void i2c_bl_hw_reset(struct i2c_client *client)
 	}
 }
 
+#if 0
 static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf)
 {
     s32 ret;
@@ -105,6 +108,7 @@ static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf)
 
     return ret;
 }
+#endif
 
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val)
 {
@@ -122,6 +126,7 @@ static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsign
 	return 0;
 }
 
+#if 0
 static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size)
 {
 	if(bl_cmds!=NULL && size>0) {
@@ -148,11 +153,12 @@ static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cm
 
 	return 0;
 }
+#endif
 
 static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 {
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
+	//struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 
 	int cal_value = 0;
 	int min_brightness = i2c_bl_dev->min_brightness;
@@ -178,20 +184,33 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 		} else
 			i2c_bl_write_reg(client, 0x70, cal_value);
 	} else
-		i2c_bl_write_regs(client, pdata->deinit_cmds, pdata->deinit_cmds_size);
+		i2c_bl_write_reg(client, 0x1d, 0x00);
 		
 	mdelay(1);
 }
 
 void i2c_bl_backlight_on(struct i2c_client *client, int level)
 {
-	struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
+	//struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
+	char base;
+
+	if (basekk_val == 1) {
+		base = 0x03;
+	} else if (basekk_val == 0) {
+		base = 0x01;
+	} else {
+		base = 0x01;
+	}
 
 	mutex_lock(&backlight_mtx);
 	if (backlight_status == BL_OFF) {
-		pr_info("%s, ++ lm3530_backlight_on  \n",__func__);
+		pr_info("%s, ++ i2c_bl_backlight_on  \n",__func__);
 		i2c_bl_hw_reset(client);
-		i2c_bl_write_regs(client, pdata->init_cmds, pdata->init_cmds_size);
+		i2c_bl_write_reg(client, 0x10, 0x00);
+		i2c_bl_write_reg(client, 0x1d, 0x01);
+		i2c_bl_write_reg(client, 0x13, 0x06);
+		i2c_bl_write_reg(client, 0x16, base);
+		i2c_bl_write_reg(client, 0x17, 0x13);
 	}
 	mdelay(1);
 
@@ -327,8 +346,32 @@ static ssize_t lcd_backlight_store_on_off(struct device *dev, struct device_attr
 
 }
 
+static ssize_t basekk_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", basekk_val);
+}
+
+static ssize_t basekk_store(struct device * dev, struct device_attribute * attr, const char * buf, size_t size)
+{
+    int base_val;
+
+	sscanf(buf, "%d", &base_val);
+
+	if (base_val != basekk_val) {
+		if (base_val <= 0)
+			base_val = 0;
+		else if (base_val > 0)
+			base_val = 1;
+		pr_info("New base: %d\n", base_val);
+		basekk_val = base_val;
+	}
+
+    return size;
+}
+
 DEVICE_ATTR(i2c_bl_level, 0644, lcd_backlight_show_level, lcd_backlight_store_level);
 DEVICE_ATTR(i2c_bl_backlight_on_off, 0644, lcd_backlight_show_on_off, lcd_backlight_store_on_off);
+DEVICE_ATTR(basekk, 0777, basekk_show, basekk_store);
 
 static struct backlight_ops i2c_bl_ops = {
 	.update_status = bl_set_intensity,
@@ -405,10 +448,17 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 		dev_err(&i2c_dev->dev, "failed to create 2nd sysfs\n");
 		goto err_device_create_file_2;
 	}
+	err = device_create_file(&i2c_dev->dev, &dev_attr_basekk);
+	if (err < 0) {
+		dev_err(&i2c_dev->dev, "failed to create 3rd sysfs\n");
+		goto err_device_create_file_3;
+	}
 
 	pr_info("i2c_bl probed\n");
 	return 0;
 
+err_device_create_file_3:
+	device_remove_file(&i2c_dev->dev, &dev_attr_basekk);
 err_device_create_file_2:
 	device_remove_file(&i2c_dev->dev, &dev_attr_i2c_bl_level);
 err_device_create_file_1:
@@ -428,6 +478,7 @@ static int i2c_bl_remove(struct i2c_client *client)
 
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_level);
 	device_remove_file(&client->dev, &dev_attr_i2c_bl_backlight_on_off);
+	device_remove_file(&client->dev, &dev_attr_basekk);
 	i2c_set_clientdata(client, NULL);
 
 	if (gpio_is_valid(i2c_bl_dev->gpio))
