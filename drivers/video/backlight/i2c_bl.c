@@ -58,9 +58,7 @@ static const struct i2c_device_id i2c_bl_id[] = {
 	{ },
 };
 
-//static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf);
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val);
-//static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size);
 
 static void i2c_bl_lcd_backlight_set_level(struct i2c_client *client, int level);
 
@@ -92,24 +90,6 @@ static void i2c_bl_hw_reset(struct i2c_client *client)
 	}
 }
 
-#if 0
-static int i2c_bl_read_reg(struct i2c_client *client, u8 reg, u8 *buf)
-{
-    s32 ret;
-
-    pr_debug("[LCD][DEBUG] reg: %x\n", reg);
-
-    ret = i2c_smbus_read_byte_data(client, reg);
-
-    if(ret < 0)
-           pr_err("[LCD][DEBUG] error\n");
-
-    *buf = ret;
-
-    return ret;
-}
-#endif
-
 static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsigned char val)
 {
 	u8 buf[2];
@@ -125,35 +105,6 @@ static int i2c_bl_write_reg(struct i2c_client *client, unsigned char reg, unsign
 
 	return 0;
 }
-
-#if 0
-static int i2c_bl_write_regs(struct i2c_client *client, struct i2c_bl_cmd *bl_cmds, int size)
-{
-	if(bl_cmds!=NULL && size>0) {
-		while (size--) {
-			unsigned char addr, ovalue, value, mask;
-
-			addr = bl_cmds->addr;
-			value = bl_cmds->value;
-			mask = bl_cmds->mask;
-
-			bl_cmds++;
-
-			if(mask==0)
-				continue;
-
-			if(mask==0xff)
-				i2c_bl_write_reg(client, addr, value);
-			else {
-				i2c_bl_read_reg(client, addr, &ovalue);
-				i2c_bl_write_reg(client, addr, (ovalue&(~mask))|(value&mask));
-			}
-		}
-	}
-
-	return 0;
-}
-#endif
 
 static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
 {
