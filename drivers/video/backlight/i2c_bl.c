@@ -127,13 +127,15 @@ static void i2c_bl_set_main_current_level(struct i2c_client *client, int level)
  
 		if (i2c_bl_dev->blmap) {
 			if (cal_value < i2c_bl_dev->blmap_size) {
-				i2c_bl_write_reg(client, 0x70, i2c_bl_dev->blmap[cal_value]);
+				i2c_bl_write_reg(client, 0x70,
+						i2c_bl_dev->blmap[cal_value]);
 			} else {
-				pr_err("Out of blmap range, wanted=%d, limit=%d\n", level, i2c_bl_dev->blmap_size);
-				cal_value = level;
+				dev_warn(&client->dev, "invalid index %d:%d\n",
+						i2c_bl_dev->blmap_size, cal_value);
 			} 
-		} else
+		} else {
 			i2c_bl_write_reg(client, 0x70, cal_value);
+		}
 	} else
 		i2c_bl_write_reg(client, 0x1d, 0x00);
 		
@@ -157,13 +159,13 @@ void i2c_bl_backlight_on(struct i2c_client *client, int level)
 	if (backlight_status == BL_OFF) {
 		pr_info("%s, ++ i2c_bl_backlight_on  \n",__func__);
 		i2c_bl_hw_reset(client);
+
 		i2c_bl_write_reg(client, 0x10, 0x00);
 		i2c_bl_write_reg(client, 0x1d, 0x01);
 		i2c_bl_write_reg(client, 0x13, 0x06);
 		i2c_bl_write_reg(client, 0x16, base);
 		i2c_bl_write_reg(client, 0x17, 0x13);
 	}
-	mdelay(1);
 
 	i2c_bl_set_main_current_level(client, level);
 	backlight_status = BL_ON;
@@ -187,6 +189,8 @@ static void i2c_bl_backlight_off(struct i2c_client *client)
 	i2c_bl_set_main_current_level(client, 0);
 	backlight_status = BL_OFF;
 
+	gpio_tlmm_config(GPIO_CFG(gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,
+			GPIO_CFG_2MA), GPIO_CFG_ENABLE);
 	gpio_direction_output(gpio, 0);
 	msleep(6);
 	mutex_unlock(&backlight_mtx);
@@ -235,7 +239,8 @@ static int bl_get_intensity(struct backlight_device *bd)
 
 static ssize_t lcd_backlight_show_level(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "LCD Backlight Level is : %d\n", cur_main_lcd_level);
+	return snprintf(buf, PAGE_SIZE, "LCD Backlight Level is : %d\n",
+			cur_main_lcd_level);
 }
 
 static ssize_t lcd_backlight_store_level(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
@@ -269,7 +274,8 @@ static int i2c_bl_suspend(struct i2c_client *client, pm_message_t state)
 
 static ssize_t lcd_backlight_show_on_off(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	pr_info("%s received (prev backlight_status: %s)\n", __func__, backlight_status ? "ON" : "OFF");
+	pr_info("%s received (prev backlight_status: %s)\n", __func__,
+			backlight_status ? "ON" : "OFF");
 
 	return 0;
 }
@@ -282,7 +288,8 @@ static ssize_t lcd_backlight_store_on_off(struct device *dev, struct device_attr
 	if (!count)
 		return -EINVAL;
 
-	pr_info("%s received (prev backlight_status: %s)\n", __func__, backlight_status ? "ON" : "OFF");
+	pr_info("%s received (prev backlight_status: %s)\n", __func__,
+			backlight_status ? "ON" : "OFF");
 
 	on_off = simple_strtoul(buf, NULL, 10);
 
@@ -320,8 +327,10 @@ static ssize_t basekk_store(struct device * dev, struct device_attribute * attr,
     return size;
 }
 
-DEVICE_ATTR(i2c_bl_level, 0644, lcd_backlight_show_level, lcd_backlight_store_level);
-DEVICE_ATTR(i2c_bl_backlight_on_off, 0644, lcd_backlight_show_on_off, lcd_backlight_store_on_off);
+DEVICE_ATTR(i2c_bl_level, 0644, lcd_backlight_show_level,
+		lcd_backlight_store_level);
+DEVICE_ATTR(i2c_bl_backlight_on_off, 0644, lcd_backlight_show_on_off,
+		lcd_backlight_store_on_off);
 DEVICE_ATTR(basekk, 0777, basekk_show, basekk_store);
 
 static struct backlight_ops i2c_bl_ops = {
@@ -353,7 +362,8 @@ static int i2c_bl_probe(struct i2c_client *i2c_dev, const struct i2c_device_id *
 	props.type = BACKLIGHT_RAW;
 	props.max_brightness = pdata->max_brightness;
 
-	bl_dev = backlight_device_register(I2C_BL_NAME, &i2c_dev->dev, NULL, &i2c_bl_ops, &props);
+	bl_dev = backlight_device_register(I2C_BL_NAME,
+			&i2c_dev->dev, NULL, &i2c_bl_ops, &props);
 	if (IS_ERR(bl_dev)) {
 		dev_err(&i2c_dev->dev, "failed to register backlight\n");
 		err = PTR_ERR(bl_dev);

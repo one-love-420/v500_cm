@@ -849,6 +849,7 @@ static struct i2c_bl_cmd i2c_bl_deinit_lm3532_cmd[] = {
 	{0x1d, 0x00, 0xff, "Disable LED A"},
 };
 
+/* http://www.ti.com/lit/ds/symlink/lm3532.pdf */
 static struct i2c_bl_cmd i2c_bl_dump_lm3532_regs[] = {
 	{0x10, 0x00, 0xff, "Output Configuration Register"},
 	{0x11, 0x00, 0xff, "Startup/Shutdown Ramp Rate Register"},
