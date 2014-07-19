@@ -15,6 +15,8 @@
 #ifndef __I2C_BL_H__
 #define __I2C_BL_H__
 
+void i2c_bl_lcd_backlight_pwm_disable(void);
+
 void i2c_bl_lcd_backlight_set_level_export(int level);
 
 struct i2c_bl_cmd {

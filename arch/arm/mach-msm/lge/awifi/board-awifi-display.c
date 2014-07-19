@@ -792,6 +792,10 @@ static struct msm_panel_common_pdata mipi_lgit_pdata_LD083WU1 = {
 
 	.power_off_set_size_1 = ARRAY_SIZE(lgit_power_off_set_LD083WU1),
 	.power_off_set_size_2 = ARRAY_SIZE(lgit_shutdown_set_LD083WU1),
+
+#if defined(CONFIG_LGE_BACKLIGHT_CABC)
+	.bl_pwm_disable = i2c_bl_lcd_backlight_pwm_disable,
+#endif
 };
 
 static struct platform_device mipi_dsi_lgit_panel_device = {
