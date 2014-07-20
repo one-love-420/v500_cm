@@ -3867,14 +3867,6 @@ static void __init register_i2c_devices(void)
 		apq8064_camera_board_info.board_info,
 		apq8064_camera_board_info.num_i2c_board_info,
 	};
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-	struct i2c_registry apq8064_camera_i2c_devices_revA = {
-		I2C_SURF | I2C_FFA | I2C_LIQUID | I2C_RUMI,
-		APQ_8064_GSBI4_QUP_I2C_BUS_ID,
-		apq8064_camera_board_info_revA.board_info,
-		apq8064_camera_board_info_revA.num_i2c_board_info,
-	};
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
 
 /* [patch for Enabling flash LED for camera]
   * 2012-03-14, jinsool.lee@lge.com
@@ -3911,18 +3903,6 @@ static void __init register_i2c_devices(void)
 						apq8064_i2c_devices[i].len);
 	}
 #ifdef CONFIG_MSM_CAMERA
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-	if(lge_get_board_revno() >= HW_REV_A){
-		if (apq8064_camera_i2c_devices_revA.machs & mach_mask)
-			i2c_register_board_info(apq8064_camera_i2c_devices_revA.bus,
-				apq8064_camera_i2c_devices_revA.info,
-				apq8064_camera_i2c_devices_revA.len);
-		if (apq8064_camera_i2c_devices_revA.machs & mach_mask)
-			i2c_register_board_info(apq8064_lge_camera_i2c_devices.bus,
-				apq8064_lge_camera_i2c_devices.info,
-				apq8064_lge_camera_i2c_devices.len);
-	}else{
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
 	if (apq8064_camera_i2c_devices.machs & mach_mask)
 		i2c_register_board_info(apq8064_camera_i2c_devices.bus,
 			apq8064_camera_i2c_devices.info,
@@ -3931,7 +3911,6 @@ static void __init register_i2c_devices(void)
 		i2c_register_board_info(apq8064_lge_camera_i2c_devices.bus,
 			apq8064_lge_camera_i2c_devices.info,
 			apq8064_lge_camera_i2c_devices.len);
-	}
 #endif
 
 	for (i = 0; i < ARRAY_SIZE(mpq8064_i2c_devices); ++i) {

@@ -118,9 +118,6 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
 		},
 	},
-
-/* FIXME: for old HW (LGU Rev.A,B VZW Rev.A,B ATT Rev.A) */
-#if 1
 	{
 		.gpio = GPIO_CAM_MCLK2, /* 2 */
 		.settings = {
@@ -128,34 +125,6 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
 		},
 	},
-#else
-	{
-		.gpio = GPIO_CAM_MCLK1, /* 4 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[1],
-			[GPIOMUX_SUSPENDED] = &cam_settings[0],
-		},
-	},
-#endif
-/* LGE_CHANGE_START youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
-#if 0
-	{
-		.gpio = GPIO_CAM2_RST_N, /* 28 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[2],
-			[GPIOMUX_SUSPENDED] = &cam_settings[0],
-		},
-	},
-/* LGE_CHANGE_END youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
-
-	{
-		.gpio = GPIO_CAM1_RST_N, /* 27 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[2],
-			[GPIOMUX_SUSPENDED] = &cam_settings[0],
-		},
-	},
-#endif
 	{
 		.gpio = GPIO_CAM_I2C_SDA, /* 12 */
 		.settings = {
@@ -172,7 +141,7 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 	},
 };
 
-#if defined(CONFIG_S5K4E5YA)
+
 static struct msm_bus_vectors cam_init_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
@@ -345,37 +314,18 @@ static struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	},
 };
 
-static struct camera_vreg_t apq_8064_back_cam_vreg[] = {
-	{"cam1_vdig", REG_LDO, 1800000, 1800000, 105000, 0}, // VREG_L23_1P8 , 1.8V Main CAM DVDD
-	{"cam1_vana", REG_LDO, 2800000, 2850000, 85600, 0}, // VREG_L11_2P8 , 2.8V Main CAM AVDD
-	{"cam1_vio", REG_VS, 0, 0, 0, 0}, // VREG_LVS5_1P8 , 1.8V 5M CAM IOVDD		
-};
-
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-static struct camera_vreg_t apq_8064_back_cam_vreg_revA[] = {
-	{"cam1_vdig_revA", REG_LDO, 1500000, 1500000, 105000, 0},
-	{"cam1_vana", REG_LDO, 2800000, 2850000, 85600, 0},
-	{"cam1_vio", REG_VS, 0, 0, 0, 0},
-};
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-#endif
-
-#ifdef CONFIG_IMX119
-static struct camera_vreg_t apq_8064_front_cam_vreg[] = {
-	{"cam2_vio", REG_VS, 0, 0, 0, 0},
-	{"cam2_vana", REG_LDO, 2800000, 2850000, 85600, 0},
-	{"cam2_vdig", REG_LDO, 1200000, 1200000, 105000, 0},
-	{"cam2_i2c", REG_VS, 0, 0, 0, 0},
-};
-#endif
-
-
 static struct gpio apq8064_common_cam_gpio[] = {
 	{12, GPIOF_DIR_IN, "CAMIF_I2C_DATA"},
 	{13, GPIOF_DIR_IN, "CAMIF_I2C_CLK"},
 };
 
-#if defined(CONFIG_S5K4E5YA) || defined(CONFIG_IMX119)
+#if defined(CONFIG_S5K4E5YA)
+static struct camera_vreg_t apq_8064_back_cam_vreg[] = {
+	{"cam1_vdig", REG_LDO, 1500000, 1500000, 105000, 0}, // VREG_L23_1P8 , 1.8V Main CAM DVDD
+	{"cam1_vana", REG_LDO, 2800000, 2850000, 85600, 0}, // VREG_L11_2P8 , 2.8V Main CAM AVDD
+	{"cam1_vio", REG_VS, 0, 0, 0, 0}, // VREG_LVS5_1P8 , 1.8V 5M CAM IOVDD		
+};
+
 static struct gpio apq8064_back_cam_gpio[] = {
 	{GPIO_CAM_MCLK0, GPIOF_DIR_IN, "CAMIF_MCLK"},
 };
@@ -387,9 +337,77 @@ static struct msm_camera_gpio_conf apq8064_back_cam_gpio_conf = {
 //	.cam_gpio_set_tbl = apq8064_back_cam_gpio_set_tbl,
 //	.cam_gpio_set_tbl_size = ARRAY_SIZE(apq8064_back_cam_gpio_set_tbl),
 };
+
+static struct msm_camera_i2c_conf apq8064_back_cam_i2c_conf = {
+	.use_i2c_mux = 1,
+	.mux_dev = &msm8960_device_i2c_mux_gsbi4,
+	.i2c_mux_mode = MODE_L,
+};
+
+static struct msm_camera_sensor_flash_data flash_s5k4e5ya = {
+	.flash_type	= MSM_CAMERA_FLASH_NONE,
+};
+
+static struct msm_camera_csi_lane_params s5k4e5ya_csi_lane_params = {
+	.csi_lane_assign = 0xE4,
+	.csi_lane_mask = 0x3,
+};
+
+static struct msm_camera_sensor_platform_info sensor_board_info_s5k4e5ya = {
+	.mount_angle	= 90,
+	.cam_vreg = apq_8064_back_cam_vreg,
+	.num_vreg = ARRAY_SIZE(apq_8064_back_cam_vreg),
+	.gpio_conf = &apq8064_back_cam_gpio_conf,
+	.i2c_conf = &apq8064_back_cam_i2c_conf,
+	.csi_lane_params = &s5k4e5ya_csi_lane_params,
+};
+
+static struct i2c_board_info s5k4e5ya_eeprom_i2c_info = {
+	I2C_BOARD_INFO("s5k4e5ya_eeprom", I2C_SLAVE_ADDR_S5K4E5YA_EEPROM),
+};
+
+static struct msm_eeprom_info s5k4e5ya_eeprom_info = {
+	.board_info     = &s5k4e5ya_eeprom_i2c_info,
+	.bus_id         = APQ_8064_GSBI4_QUP_I2C_BUS_ID,
+};
+
+#ifdef CONFIG_S5K4E5YA_ACT
+static struct i2c_board_info msm_act_main_cam_i2c_info = {
+	I2C_BOARD_INFO("msm_actuator", I2C_SLAVE_ADDR_S5K4E5YA_ACT), /* 0x18 */
+};
+
+static struct msm_actuator_info msm_act_main_cam_0_info = {
+	.board_info     = &msm_act_main_cam_i2c_info,
+	.cam_name   = MSM_ACTUATOR_MAIN_CAM_2,  // MSM_ACTUATOR_MAIN_CAM_1
+	.bus_id         = APQ_8064_GSBI4_QUP_I2C_BUS_ID,
+	.vcm_pwd        = 0,
+	.vcm_enable     = 0,
+};
+#endif
+
+static struct msm_camera_sensor_info msm_camera_sensor_s5k4e5ya_data = {
+	.sensor_name	= "s5k4e5ya",
+	.pdata	= &msm_camera_csi_device_data[0],
+	.flash_data	= &flash_s5k4e5ya,
+	.sensor_platform_info = &sensor_board_info_s5k4e5ya,
+	.csi_if	= 1,
+	.camera_type = BACK_CAMERA_2D,
+	.sensor_type = BAYER_SENSOR,
+#ifdef CONFIG_S5K4E5YA_ACT
+	.actuator_info = &msm_act_main_cam_0_info,
+#endif
+	.eeprom_info = &s5k4e5ya_eeprom_info,
+};
 #endif
 
 #ifdef CONFIG_IMX119
+static struct camera_vreg_t apq_8064_front_cam_vreg[] = {
+	{"cam2_vdig", REG_VS, 0, 0, 0, 0},
+	{"cam2_vana", REG_LDO, 2850000, 2850000, 85600, 0},
+	{"cam2_vio", REG_LDO, 1800000, 1800000, 105000, 0},
+	{"cam2_i2c", REG_VS, 0, 0, 0, 0},
+};
+
 static struct gpio apq8064_front_cam_gpio[] = {
 	{GPIO_CAM_MCLK2, GPIOF_DIR_IN, "CAMIF_MCLK"},
 };
@@ -416,142 +434,13 @@ static struct msm_camera_gpio_conf apq8064_front_cam_gpio_conf = {
 #endif
 /* LGE_CHANGE_END youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
 };
-#endif
 
-#if defined (CONFIG_S5K4E5YA)
-static struct msm_camera_i2c_conf apq8064_back_cam_i2c_conf = {
-	.use_i2c_mux = 1,
-	.mux_dev = &msm8960_device_i2c_mux_gsbi4,
-	.i2c_mux_mode = MODE_L,
-};
-#endif
-
-#ifdef CONFIG_S5K4E5YA_ACT
-static struct i2c_board_info msm_act_main_cam_i2c_info = {
-	I2C_BOARD_INFO("msm_actuator", I2C_SLAVE_ADDR_S5K4E5YA_ACT), /* 0x18 */
-};
-
-static struct msm_actuator_info msm_act_main_cam_0_info = {
-	.board_info     = &msm_act_main_cam_i2c_info,
-	.cam_name   = MSM_ACTUATOR_MAIN_CAM_2,  // MSM_ACTUATOR_MAIN_CAM_1
-	.bus_id         = APQ_8064_GSBI4_QUP_I2C_BUS_ID,
-	.vcm_pwd        = 0,
-	.vcm_enable     = 0,
-};
-#endif
-
-#ifdef CONFIG_S5K4E5YA
-static struct msm_camera_sensor_flash_data flash_s5k4e5ya = {
-	.flash_type	= MSM_CAMERA_FLASH_NONE,
-};
-
-static struct msm_camera_csi_lane_params s5k4e5ya_csi_lane_params = {
-	.csi_lane_assign = 0xE4,
-	.csi_lane_mask = 0x3,
-};
-
-static struct msm_camera_sensor_platform_info sensor_board_info_s5k4e5ya = {
-	.mount_angle	= 90,
-	.cam_vreg = apq_8064_back_cam_vreg,
-	.num_vreg = ARRAY_SIZE(apq_8064_back_cam_vreg),
-	.gpio_conf = &apq8064_back_cam_gpio_conf,
-	.i2c_conf = &apq8064_back_cam_i2c_conf,
-	.csi_lane_params = &s5k4e5ya_csi_lane_params,
-};
-
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-static struct msm_camera_sensor_platform_info sensor_board_info_s5k4e5ya_revA = {
-	.mount_angle	= 90,
-	.cam_vreg = apq_8064_back_cam_vreg_revA,
-	.num_vreg = ARRAY_SIZE(apq_8064_back_cam_vreg_revA),
-	.gpio_conf = &apq8064_back_cam_gpio_conf,
-	.i2c_conf = &apq8064_back_cam_i2c_conf,
-	.csi_lane_params = &s5k4e5ya_csi_lane_params,
-};
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-
-
-static struct i2c_board_info s5k4e5ya_eeprom_i2c_info = {
-	I2C_BOARD_INFO("s5k4e5ya_eeprom", I2C_SLAVE_ADDR_S5K4E5YA_EEPROM),
-};
-
-static struct msm_eeprom_info s5k4e5ya_eeprom_info = {
-	.board_info     = &s5k4e5ya_eeprom_i2c_info,
-	.bus_id         = APQ_8064_GSBI4_QUP_I2C_BUS_ID,
-};
-
-static struct msm_camera_sensor_info msm_camera_sensor_s5k4e5ya_data = {
-	.sensor_name	= "s5k4e5ya",
-	.pdata	= &msm_camera_csi_device_data[0],
-	.flash_data	= &flash_s5k4e5ya,
-	.sensor_platform_info = &sensor_board_info_s5k4e5ya,
-	.csi_if	= 1,
-	.camera_type = BACK_CAMERA_2D,
-	.sensor_type = BAYER_SENSOR,
-#ifdef CONFIG_S5K4E5YA_ACT
-	.actuator_info = &msm_act_main_cam_0_info,
-#endif
-	.eeprom_info = &s5k4e5ya_eeprom_info,
-};
-
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-static struct msm_camera_sensor_info msm_camera_sensor_s5k4e5ya_data_revA = {
-	.sensor_name	= "s5k4e5ya",
-	.pdata	= &msm_camera_csi_device_data[0],
-	.flash_data	= &flash_s5k4e5ya,
-	.sensor_platform_info = &sensor_board_info_s5k4e5ya_revA,
-	.csi_if	= 1,
-	.camera_type = BACK_CAMERA_2D,
-	.sensor_type = BAYER_SENSOR,
-#ifdef CONFIG_S5K4E5YA_ACT
-	.actuator_info = &msm_act_main_cam_0_info,
-#endif
-	.eeprom_info = &s5k4e5ya_eeprom_info,
-};
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-
-#endif
-
-#ifdef CONFIG_IMX119
 static struct msm_camera_i2c_conf apq8064_front_cam_i2c_conf = {
 	.use_i2c_mux = 1,
 	.mux_dev = &msm8960_device_i2c_mux_gsbi4,
 	.i2c_mux_mode = MODE_L,
 };
-#endif
 
-#ifdef CONFIG_IMX135
-static struct msm_camera_sensor_flash_data flash_imx135 = {
-	.flash_type = MSM_CAMERA_FLASH_NONE,
-};
-
-static struct msm_camera_csi_lane_params imx135_csi_lane_params = {
-	.csi_lane_assign = 0xE4,
-	.csi_lane_mask = 0xF,
-};
-
-static struct msm_camera_sensor_platform_info sensor_board_info_imx135 = {
-	.mount_angle    = 90,
-	.cam_vreg = apq_8064_cam_vreg,
-	.num_vreg = ARRAY_SIZE(apq_8064_cam_vreg),
-	.gpio_conf = &apq8064_back_cam_gpio_conf,
-	.i2c_conf = &apq8064_back_cam_i2c_conf,
-	.csi_lane_params = &imx135_csi_lane_params,
-};
-
-static struct msm_camera_sensor_info msm_camera_sensor_imx135_data = {
-	.sensor_name    = "imx135",
-	.pdata  = &msm_camera_csi_device_data[0],
-	.flash_data = &flash_imx135,
-	.sensor_platform_info = &sensor_board_info_imx135,
-	.csi_if = 1,
-	.camera_type = BACK_CAMERA_2D,
-	.sensor_type = BAYER_SENSOR,
-	.actuator_info = &msm_act_main_cam_1_info,
-};
-#endif
-
-#ifdef CONFIG_IMX119
 static struct msm_camera_sensor_flash_data flash_imx119 = {
 	.flash_type	= MSM_CAMERA_FLASH_NONE,
 };
@@ -648,30 +537,7 @@ static struct i2c_board_info apq8064_camera_i2c_boardinfo[] = {
 		.platform_data = &msm_camera_sensor_imx119_data,
 	},
 #endif
-#ifdef CONFIG_IMX135
-	{
-	I2C_BOARD_INFO("imx135", 0x10),
-	.platform_data = &msm_camera_sensor_imx135_data,
-	},
-#endif
 };
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-static struct i2c_board_info apq8064_camera_i2c_boardinfo_revA[] = {
-#ifdef CONFIG_S5K4E5YA
-	{
-		I2C_BOARD_INFO("s5k4e5ya", I2C_SLAVE_ADDR_S5K4E5YA), /* 0x20 */
-		.platform_data = &msm_camera_sensor_s5k4e5ya_data_revA,
-	},
-#endif
-#ifdef CONFIG_IMX119
-	{
-		I2C_BOARD_INFO("imx119", I2C_SLAVE_ADDR_IMX119), /* 0x6E */
-		.platform_data = &msm_camera_sensor_imx119_data,
-	},
-#endif
-};
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-
 
 /* Enabling flash LED for camera */
 static struct i2c_board_info apq8064_lge_camera_i2c_boardinfo[] = {
@@ -685,14 +551,7 @@ struct msm_camera_board_info apq8064_camera_board_info = {
 	.board_info = apq8064_camera_i2c_boardinfo,
 	.num_i2c_board_info = ARRAY_SIZE(apq8064_camera_i2c_boardinfo),
 };
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-struct msm_camera_board_info apq8064_camera_board_info_revA = {
-	.board_info = apq8064_camera_i2c_boardinfo_revA,
-	.num_i2c_board_info = ARRAY_SIZE(apq8064_camera_i2c_boardinfo_revA),
-};
-/* LGE_CHANGE_E, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
 
-/* Enabling flash LED for camera */
 struct msm_camera_board_info apq8064_lge_camera_board_info = {
 	.board_info = apq8064_lge_camera_i2c_boardinfo,
 	.num_i2c_board_info = ARRAY_SIZE(apq8064_lge_camera_i2c_boardinfo),
