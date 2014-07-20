@@ -141,13 +141,6 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 	},
 };
 
-static struct msm_gpiomux_config apq8064_cam_2d_configs[] = {
-};
-
-static struct gpio apq8064_common_cam_gpio[] = {
-	{12, GPIOF_DIR_IN, "CAMIF_I2C_DATA"},
-	{13, GPIOF_DIR_IN, "CAMIF_I2C_CLK"},
-};
 
 static struct msm_bus_vectors cam_init_vectors[] = {
 	{
@@ -321,6 +314,11 @@ static struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	},
 };
 
+static struct gpio apq8064_common_cam_gpio[] = {
+	{12, GPIOF_DIR_IN, "CAMIF_I2C_DATA"},
+	{13, GPIOF_DIR_IN, "CAMIF_I2C_CLK"},
+};
+
 #if defined(CONFIG_S5K4E5YA)
 static struct camera_vreg_t apq_8064_back_cam_vreg[] = {
 	{"cam1_vdig", REG_LDO, 1500000, 1500000, 105000, 0}, // VREG_L23_1P8 , 1.8V Main CAM DVDD
@@ -333,10 +331,7 @@ static struct gpio apq8064_back_cam_gpio[] = {
 };
 
 static struct msm_camera_gpio_conf apq8064_back_cam_gpio_conf = {
-	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
-	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
-	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
-	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
+	.gpio_no_mux = 1,
 	.cam_gpio_req_tbl = apq8064_back_cam_gpio,
 	.cam_gpio_req_tbl_size = ARRAY_SIZE(apq8064_back_cam_gpio),
 //	.cam_gpio_set_tbl = apq8064_back_cam_gpio_set_tbl,
@@ -408,8 +403,8 @@ static struct msm_camera_sensor_info msm_camera_sensor_s5k4e5ya_data = {
 #ifdef CONFIG_IMX119
 static struct camera_vreg_t apq_8064_front_cam_vreg[] = {
 	{"cam2_vdig", REG_VS, 0, 0, 0, 0},
-	{"cam2_vio", REG_LDO, 1800000, 1800000, 105000, 0},
 	{"cam2_vana", REG_LDO, 2850000, 2850000, 85600, 0},
+	{"cam2_vio", REG_LDO, 1800000, 1800000, 105000, 0},
 	{"cam2_i2c", REG_VS, 0, 0, 0, 0},
 };
 
@@ -429,10 +424,7 @@ static struct msm_gpio_set_tbl apq8064_front_cam_gpio_set_tbl[] = {
 /* LGE_CHANGE_END youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
 
 static struct msm_camera_gpio_conf apq8064_front_cam_gpio_conf = {
-	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
-	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
-	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
-	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
+	.gpio_no_mux = 1,
 	.cam_gpio_req_tbl = apq8064_front_cam_gpio,
 	.cam_gpio_req_tbl_size = ARRAY_SIZE(apq8064_front_cam_gpio),
 /* LGE_CHANGE_START youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
@@ -512,13 +504,16 @@ void __init apq8064_init_cam(void)
 {
 	/* for SGLTE2 platform, do not configure i2c/gpiomux gsbi4 is used for
 	 * some other purpose */
-	msm_gpiomux_install(apq8064_cam_common_configs,
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2) {
+		msm_gpiomux_install(apq8064_cam_common_configs,
 			ARRAY_SIZE(apq8064_cam_common_configs));
+	}
 
 	mako_fixup_cam();
 
 	platform_device_register(&msm_camera_server);
-	platform_device_register(&msm8960_device_i2c_mux_gsbi4);
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2)
+		platform_device_register(&msm8960_device_i2c_mux_gsbi4);
 	platform_device_register(&msm8960_device_csiphy0);
 	platform_device_register(&msm8960_device_csiphy1);
 	platform_device_register(&msm8960_device_csid0);
