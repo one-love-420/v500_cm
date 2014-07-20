@@ -47,7 +47,7 @@
 /* AKT_TIME on the amp datasheet default value is 5 */
 #define AKT_TIME					6
 /* REL_TIME on the amp datasheet default value is 11 */
-#define REL_TIME					13
+#define REL_TIME					13 //4
 #define MAX_GAIN					12
 #endif
 //[AUDIO_BSP][AWIFI] ilda.jung@lge.com 2013-04-16 enable dual speaker [START]

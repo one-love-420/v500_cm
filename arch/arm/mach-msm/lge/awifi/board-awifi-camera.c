@@ -173,6 +173,9 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 };
 
 #if defined(CONFIG_S5K4E5YA)
+static struct msm_gpiomux_config apq8064_cam_2d_configs[] = {
+};
+
 static struct msm_bus_vectors cam_init_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
@@ -219,8 +222,8 @@ static struct msm_bus_vectors cam_video_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 274406400, //org. 140451840,
-		.ib  = 1812430080, //org. 561807360,
+		.ab  = 140451840,
+		.ib  = 561807360,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
@@ -278,27 +281,6 @@ static struct msm_bus_vectors cam_zsl_vectors[] = {
 	},
 };
 
-static struct msm_bus_vectors cam_video_ls_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_VFE,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 348192000,
-		.ib  = 617103360,
-	},
-	{
-		.src = MSM_BUS_MASTER_VPE,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 206807040,
-		.ib  = 488816640,
-	},
-	{
-		.src = MSM_BUS_MASTER_JPEG_ENC,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 540000000,
-		.ib  = 1350000000,
-	},
-};
-
 static struct msm_bus_paths cam_bus_client_config[] = {
 	{
 		ARRAY_SIZE(cam_init_vectors),
@@ -319,10 +301,6 @@ static struct msm_bus_paths cam_bus_client_config[] = {
 	{
 		ARRAY_SIZE(cam_zsl_vectors),
 		cam_zsl_vectors,
-	},
-	{
-		ARRAY_SIZE(cam_video_ls_vectors),
-		cam_video_ls_vectors,
 	},
 };
 
@@ -362,26 +340,28 @@ static struct camera_vreg_t apq_8064_back_cam_vreg_revA[] = {
 
 #ifdef CONFIG_IMX119
 static struct camera_vreg_t apq_8064_front_cam_vreg[] = {
-	{"cam2_vio", REG_VS, 0, 0, 0, 0},
-	{"cam2_vana", REG_LDO, 2800000, 2850000, 85600, 0},
-	{"cam2_vdig", REG_LDO, 1200000, 1200000, 105000, 0},
+	{"cam2_vdig", REG_VS, 0, 0, 0, 0},
+	{"cam2_vio", REG_LDO, 1800000, 1800000, 105000, 0},
+	{"cam2_vana", REG_LDO, 2850000, 2850000, 85600, 0},
 	{"cam2_i2c", REG_VS, 0, 0, 0, 0},
 };
 #endif
 
-
+#if defined(CONFIG_S5K4E5YA)
 static struct gpio apq8064_common_cam_gpio[] = {
 	{12, GPIOF_DIR_IN, "CAMIF_I2C_DATA"},
 	{13, GPIOF_DIR_IN, "CAMIF_I2C_CLK"},
 };
 
-#if defined(CONFIG_S5K4E5YA) || defined(CONFIG_IMX119)
 static struct gpio apq8064_back_cam_gpio[] = {
 	{GPIO_CAM_MCLK0, GPIOF_DIR_IN, "CAMIF_MCLK"},
 };
 
 static struct msm_camera_gpio_conf apq8064_back_cam_gpio_conf = {
-	.gpio_no_mux = 1,
+	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
+	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
+	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
+	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
 	.cam_gpio_req_tbl = apq8064_back_cam_gpio,
 	.cam_gpio_req_tbl_size = ARRAY_SIZE(apq8064_back_cam_gpio),
 //	.cam_gpio_set_tbl = apq8064_back_cam_gpio_set_tbl,
@@ -406,7 +386,10 @@ static struct msm_gpio_set_tbl apq8064_front_cam_gpio_set_tbl[] = {
 /* LGE_CHANGE_END youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
 
 static struct msm_camera_gpio_conf apq8064_front_cam_gpio_conf = {
-	.gpio_no_mux = 1,
+	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
+	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
+	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
+	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
 	.cam_gpio_req_tbl = apq8064_front_cam_gpio,
 	.cam_gpio_req_tbl_size = ARRAY_SIZE(apq8064_front_cam_gpio),
 /* LGE_CHANGE_START youngwook.song 2013-03-04, we do not use GPIO_28 of AP, but of PM8921 for VTCAM */
@@ -601,16 +584,6 @@ static struct platform_device msm_camera_server = {
 	.id = 0,
 };
 
-static __init void mako_fixup_cam(void)
-{
-	int ret;
-
-	ret = gpio_request_array(apq8064_common_cam_gpio,
-			ARRAY_SIZE(apq8064_common_cam_gpio));
-	if (ret < 0)
-		pr_err("%s: failed gpio request common_cam_gpio\n", __func__);
-}
-
 void __init apq8064_init_cam(void)
 {
 	/* for SGLTE2 platform, do not configure i2c/gpiomux gsbi4 is used for
@@ -619,8 +592,6 @@ void __init apq8064_init_cam(void)
 		msm_gpiomux_install(apq8064_cam_common_configs,
 			ARRAY_SIZE(apq8064_cam_common_configs));
 	}
-
-	mako_fixup_cam();
 
 	platform_device_register(&msm_camera_server);
 	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2)
