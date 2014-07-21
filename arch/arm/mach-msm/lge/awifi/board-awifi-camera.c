@@ -143,9 +143,6 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 	},
 };
 
-static struct msm_gpiomux_config apq8064_cam_2d_configs[] = {
-};
-
 static struct gpio apq8064_common_cam_gpio[] = {
 	{12, GPIOF_DIR_IN, "CAMIF_I2C_DATA"},
 	{13, GPIOF_DIR_IN, "CAMIF_I2C_CLK"},
@@ -310,10 +307,7 @@ static struct gpio apq8064_back_cam_gpio[] = {
 };
 
 static struct msm_camera_gpio_conf apq8064_back_cam_gpio_conf = {
-	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
-	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
-	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
-	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
+	.gpio_no_mux = 1,
 	.cam_gpio_req_tbl = apq8064_back_cam_gpio,
 	.cam_gpio_req_tbl_size = ARRAY_SIZE(apq8064_back_cam_gpio),
 };
@@ -395,10 +389,7 @@ static struct gpio apq8064_front_cam_gpio[] = {
 };
 
 static struct msm_camera_gpio_conf apq8064_front_cam_gpio_conf = {
-	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
-	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
-	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
-	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
+	.gpio_no_mux = 1,
 	.cam_gpio_req_tbl = apq8064_front_cam_gpio,
 	.cam_gpio_req_tbl_size = ARRAY_SIZE(apq8064_front_cam_gpio),
 };
@@ -460,16 +451,20 @@ static struct platform_device msm_camera_server = {
 
 void __init apq8064_init_cam(void)
 {
+	int ret;
+	
+	ret = gpio_request_array(apq8064_common_cam_gpio,
+			ARRAY_SIZE(apq8064_common_cam_gpio));
+	if (ret < 0)
+		pr_err("%s: failed gpio request common_cam_gpio\n", __func__);
+
 	/* for SGLTE2 platform, do not configure i2c/gpiomux gsbi4 is used for
 	 * some other purpose */
-	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2) {
-		msm_gpiomux_install(apq8064_cam_common_configs,
-			ARRAY_SIZE(apq8064_cam_common_configs));
-	}
+	msm_gpiomux_install(apq8064_cam_common_configs,
+		ARRAY_SIZE(apq8064_cam_common_configs));
 
 	platform_device_register(&msm_camera_server);
-	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2)
-		platform_device_register(&msm8960_device_i2c_mux_gsbi4);
+	platform_device_register(&msm8960_device_i2c_mux_gsbi4);
 	platform_device_register(&msm8960_device_csiphy0);
 	platform_device_register(&msm8960_device_csiphy1);
 	platform_device_register(&msm8960_device_csid0);
