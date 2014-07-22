@@ -93,7 +93,7 @@ static unsigned long min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 /*
  * The sample rate of the timer used to increase frequency
  */
-#define DEFAULT_TIMER_RATE (30 * USEC_PER_MSEC)
+#define DEFAULT_TIMER_RATE 50000
 static unsigned long timer_rate = DEFAULT_TIMER_RATE;
 
 /* Busy SDF parameters*/
@@ -146,7 +146,7 @@ unsigned long boosted_time;
  * sync_freq
  */
 
-static unsigned int up_threshold_any_cpu_load = 65;
+static unsigned int up_threshold_any_cpu_load = 75;
 static unsigned int sync_freq = CPU_SYNC_FREQ;
 static unsigned int up_threshold_any_cpu_freq = 1242000;
 
