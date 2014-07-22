@@ -74,6 +74,7 @@
  * insufficient; gcc allows arrays to be declared with non-constant expressions
  * (even in typedefs, where it makes no sense).
  */
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 #ifdef __COVERITY__
 #define ASSERT_ON_COMPILE(e) ASSERT(e)
 #else
