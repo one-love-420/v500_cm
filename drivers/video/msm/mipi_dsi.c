@@ -129,7 +129,7 @@ static int mipi_dsi_off(struct platform_device *pdev)
 
 	mipi_dsi_clk_disable();
 
-	/* disbale dsi engine */
+	/* disable dsi engine */
 	MIPI_OUTP(MIPI_DSI_BASE + 0x0000, 0);
 
 	mipi_dsi_phy_ctrl(0);
