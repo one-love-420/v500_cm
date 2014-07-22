@@ -3784,76 +3784,7 @@ static struct i2c_registry apq8064_i2c_devices[] __initdata = {
 #define SX150X_EXP1_INT_N	PM8921_MPP_IRQ(PM8921_IRQ_BASE, 9)
 #define SX150X_EXP2_INT_N	MSM_GPIO_TO_INT(81)
 
-struct sx150x_platform_data mpq8064_sx150x_pdata[] = {
-	[SX150X_EXP1] = {
-		.gpio_base	= SX150X_EXP1_GPIO_BASE,
-		.oscio_is_gpo	= false,
-		.io_pullup_ena	= 0x0,
-		.io_pulldn_ena	= 0x0,
-		.io_open_drain_ena = 0x0,
-		.io_polarity	= 0,
-		.irq_summary	= SX150X_EXP1_INT_N,
-		.irq_base	= SX150X_EXP1_IRQ_BASE,
-	},
-	[SX150X_EXP2] = {
-		.gpio_base	= SX150X_EXP2_GPIO_BASE,
-		.oscio_is_gpo	= false,
-		.io_pullup_ena	= 0x0f,
-		.io_pulldn_ena	= 0x70,
-		.io_open_drain_ena = 0x0,
-		.io_polarity	= 0,
-		.irq_summary	= SX150X_EXP2_INT_N,
-		.irq_base	= SX150X_EXP2_IRQ_BASE,
-	},
-	[SX150X_EXP3] = {
-		.gpio_base	= SX150X_EXP3_GPIO_BASE,
-		.oscio_is_gpo	= false,
-		.io_pullup_ena	= 0x0,
-		.io_pulldn_ena	= 0x0,
-		.io_open_drain_ena = 0x0,
-		.io_polarity	= 0,
-		.irq_summary	= -1,
-	},
-	[SX150X_EXP4] = {
-		.gpio_base	= SX150X_EXP4_GPIO_BASE,
-		.oscio_is_gpo	= false,
-		.io_pullup_ena	= 0x0,
-		.io_pulldn_ena	= 0x0,
-		.io_open_drain_ena = 0x0,
-		.io_polarity	= 0,
-		.irq_summary	= -1,
-	},
-};
-
-static struct i2c_board_info sx150x_gpio_exp_info[] = {
-	{
-		I2C_BOARD_INFO("sx1509q", 0x70),
-		.platform_data = &mpq8064_sx150x_pdata[SX150X_EXP1],
-	},
-	{
-		I2C_BOARD_INFO("sx1508q", 0x23),
-		.platform_data = &mpq8064_sx150x_pdata[SX150X_EXP2],
-	},
-	{
-		I2C_BOARD_INFO("sx1508q", 0x22),
-		.platform_data = &mpq8064_sx150x_pdata[SX150X_EXP3],
-	},
-	{
-		I2C_BOARD_INFO("sx1509q", 0x3E),
-		.platform_data = &mpq8064_sx150x_pdata[SX150X_EXP4],
-	},
-};
-
 #define MPQ8064_I2C_GSBI5_BUS_ID	5
-
-static struct i2c_registry mpq8064_i2c_devices[] __initdata = {
-	{
-		I2C_MPQ_CDP,
-		MPQ8064_I2C_GSBI5_BUS_ID,
-		sx150x_gpio_exp_info,
-		ARRAY_SIZE(sx150x_gpio_exp_info),
-	},
-};
 
 static void __init register_i2c_devices(void)
 {
@@ -3862,7 +3793,7 @@ static void __init register_i2c_devices(void)
 
 #ifdef CONFIG_MSM_CAMERA
 	struct i2c_registry apq8064_camera_i2c_devices_revA = {
-		I2C_SURF | I2C_FFA | I2C_LIQUID | I2C_RUMI,
+		I2C_FFA,
 		APQ_8064_GSBI4_QUP_I2C_BUS_ID,
 		apq8064_camera_board_info_revA.board_info,
 		apq8064_camera_board_info_revA.num_i2c_board_info,
@@ -3872,28 +3803,11 @@ static void __init register_i2c_devices(void)
   * 2012-03-14, jinsool.lee@lge.com
   */
 	struct i2c_registry apq8064_lge_camera_i2c_devices = {
-		I2C_SURF | I2C_FFA | I2C_RUMI | I2C_SIM | I2C_LIQUID | I2C_MPQ_CDP,
+		I2C_FFA,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
 		apq8064_lge_camera_board_info.board_info,
 		apq8064_lge_camera_board_info.num_i2c_board_info,
 	};
-#endif
-	/* Build the matching 'supported_machs' bitmask */
-	if (machine_is_apq8064_cdp())
-		mach_mask = I2C_SURF;
-	else if (machine_is_apq8064_mtp())
-		mach_mask = I2C_FFA;
-	else if (machine_is_apq8064_liquid())
-		mach_mask = I2C_LIQUID;
-	else if (PLATFORM_IS_MPQ8064())
-		mach_mask = I2C_MPQ_CDP;
-	else if (machine_is_apq8064_awifi())
-		mach_mask = I2C_FFA;
-	//else if (machine_is_apq8064_gk())
-	//	mach_mask = I2C_FFA;
-	else
-		pr_err("unmatched machine ID in register_i2c_devices\n");
-
 
 	/* Run the array and install devices as appropriate */
 	for (i = 0; i < ARRAY_SIZE(apq8064_i2c_devices); ++i) {
@@ -3902,25 +3816,15 @@ static void __init register_i2c_devices(void)
 						apq8064_i2c_devices[i].info,
 						apq8064_i2c_devices[i].len);
 	}
-#ifdef CONFIG_MSM_CAMERA
-/* LGE_CHANGE_S, For awifi Rev.A bring-up , 2013-06-11, seungmin.hong@lge.com */
-		if (apq8064_camera_i2c_devices_revA.machs & mach_mask)
-			i2c_register_board_info(apq8064_camera_i2c_devices_revA.bus,
-				apq8064_camera_i2c_devices_revA.info,
-				apq8064_camera_i2c_devices_revA.len);
-		if (apq8064_camera_i2c_devices_revA.machs & mach_mask)
-			i2c_register_board_info(apq8064_lge_camera_i2c_devices.bus,
-				apq8064_lge_camera_i2c_devices.info,
-				apq8064_lge_camera_i2c_devices.len);
-#endif
 
-	for (i = 0; i < ARRAY_SIZE(mpq8064_i2c_devices); ++i) {
-		if (mpq8064_i2c_devices[i].machs & mach_mask)
-			i2c_register_board_info(
-					mpq8064_i2c_devices[i].bus,
-					mpq8064_i2c_devices[i].info,
-					mpq8064_i2c_devices[i].len);
-	}
+	i2c_register_board_info(apq8064_camera_i2c_devices_revA.bus,
+		apq8064_camera_i2c_devices_revA.info,
+		apq8064_camera_i2c_devices_revA.len);
+
+	i2c_register_board_info(apq8064_lge_camera_i2c_devices.bus,
+		apq8064_lge_camera_i2c_devices.info,
+		apq8064_lge_camera_i2c_devices.len);
+#endif
 }
 
 static void enable_avc_i2c_bus(void)
