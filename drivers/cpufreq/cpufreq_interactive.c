@@ -112,8 +112,6 @@ static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
 #define DEFAULT_BOOSTPULSE_DURATION 350000
 /* Duration of a boot pulse in usecs */
 static int boostpulse_duration_val = DEFAULT_BOOSTPULSE_DURATION;
-/* End time of boost pulse in ktime converted to usecs */
-//static unsigned long boostpulse_endtime;
 bool boosted;
 
 /*
@@ -130,13 +128,6 @@ static bool io_is_busy = true;
  * touched. input_boost needs to be enabled.
  */
 #define DEFAULT_INPUT_BOOST_FREQ 1242000
-//int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
-//static struct workqueue_struct *input_wq;
-//static struct work_struct input_work;
-//
-//#define DEFAULT_BOOSTED_TIME_INTERVAL 100
-//unsigned long boosted_time;
-
 int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 extern u64 last_input_time;
 
@@ -333,6 +324,9 @@ static unsigned int choose_freq(
 static unsigned int calc_freq(struct cpufreq_interactive_cpuinfo *pcpu, 
 	unsigned int load)
 {
+	/* doesnt matter if pcpu->policy->cpuinfo.min_freq or
+	 * pcpu->policy->min both have same values
+	 */
 	unsigned int max = pcpu->policy->max;
 	unsigned int min = pcpu->policy->min;
 
@@ -401,7 +395,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 	cpu_load = loadadjfreq / pcpu->target_freq;
 
 	pcpu->prev_load = cpu_load;
-	//boosted = now < boostpulse_endtime;
 	boosted = now < (last_input_time + boostpulse_duration_val);
 
 	cpufreq_notify_utilization(pcpu->policy, cpu_load);
@@ -421,7 +414,8 @@ static void cpufreq_interactive_timer(unsigned long data)
 	else
 	{
 		new_freq = calc_freq(pcpu, cpu_load);
-		if (new_freq > hispeed_freq && pcpu->target_freq < hispeed_freq)
+		if (new_freq > hispeed_freq && 
+				pcpu->target_freq < hispeed_freq)
 			new_freq = hispeed_freq;
 
 		if (sync_freq && new_freq < sync_freq) {
@@ -667,59 +661,6 @@ static int cpufreq_interactive_speedchange_task(void *data)
 
 	return 0;
 }
-
-#if 0
-static void cpufreq_interactive_boost(struct work_struct *work)
-{
-	int i;
-	struct cpufreq_interactive_cpuinfo *pcpu;
-
-	if (time_is_after_jiffies(boosted_time 
-			+ msecs_to_jiffies(DEFAULT_BOOSTED_TIME_INTERVAL)))
-		return;
-
-	/* 
-	 * You lazy bastard are officially punished for being late so next time
-	 * finish the work faster and we won't bail on you so early
-	 */
-	if (work_pending(&input_work))
-		return;
-
-	for_each_online_cpu(i) {
-		pcpu = &per_cpu(cpuinfo, i);
-
-		if (pcpu->target_freq < input_boost_freq) {
-			pcpu->target_freq = input_boost_freq;
-		}
-
-		if (pcpu->policy->cur < input_boost_freq)
-		{
-			__cpufreq_driver_target(pcpu->policy,
-					input_boost_freq,
-					CPUFREQ_RELATION_H);
-		}
-
-		/*
-		* Set floor freq and (re)start timer for when last
-		* validated.
-		*/
-
-		pcpu->floor_freq = input_boost_freq;
-		pcpu->floor_validate_time = ktime_to_us(ktime_get());
-
-		/* 
-		 * Only boost cpu0 and cpu1 even if other cores are online. If there's
-		 * a task migration the thread migration notifier will boost the target
-		 * and make up for the lack of input boost on cpu2 and cpu3 during a
-		 * input interaction
-		 */
-		if (i)
-			break;
-	}
-
-	boosted_time = jiffies;
-}
-#endif
 
 static int cpufreq_interactive_notifier(
 	struct notifier_block *nb, unsigned long val, void *data)
@@ -1093,27 +1034,6 @@ static ssize_t store_timer_slack(
 }
 
 define_one_global_rw(timer_slack);
-
-#if 0
-static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
-				const char *buf, size_t count)
-{
-	int ret;
-	unsigned long val;
-
-	ret = kstrtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-
-	boostpulse_endtime = ktime_to_us(ktime_get()) + boostpulse_duration_val;
-	trace_cpufreq_interactive_boost("pulse");
-	queue_work_on(0, input_wq, &input_work);
-	return count;
-}
-
-static struct global_attr boostpulse =
-	__ATTR(boostpulse, 0664, NULL, store_boostpulse);
-#endif
 
 static ssize_t show_boostpulse_duration(
 	struct kobject *kobj, struct attribute *attr, char *buf)

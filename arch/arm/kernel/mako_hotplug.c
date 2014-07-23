@@ -45,7 +45,7 @@
 
 struct cpu_stats
 {
-    unsigned int online_cpus;
+	unsigned int online_cpus;
 	unsigned int counter;
 	u64 timestamp;
 	uint32_t freq;
@@ -168,9 +168,9 @@ static void cpu_smash(void)
 	u64 extra_time = MIN_CPU_UP_US;
 
 	if (stats.counter >= t->high_load_counter)
-    {
+	{
 		return;
-    }
+	}
     
 	/*
 	 * offline the cpu only if its freq is lower than
@@ -188,14 +188,14 @@ static void cpu_smash(void)
 	 * closer to the threshold point.
 	 */
 	if (t->min_time_cpu_online > 1)
-    {
+	{
 		extra_time = t->min_time_cpu_online * MIN_CPU_UP_US;
-    }
+	}
     
 	if (ktime_to_us(ktime_get()) < stats.timestamp + extra_time)
-    {
+	{
 		return;
-    }
+	}
     
 	cpus_offline_work();
 
@@ -218,47 +218,45 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 	 * display is not on
 	 */
 	if (unlikely(stats.online_cpus == 1))
-    {
+	{
 		goto reschedule;
-    }
+	}
 
 	/*
 	 * reschedule early when the user doesn't want more than 2 cores online
 	 */
 	if (unlikely(t->load_threshold == 100 && stats.online_cpus == 2))
-    {
+	{
 		goto reschedule;
-    }
+	}
 
 	/*
 	 * reschedule early when users to run with all cores online
 	 */
 	if (unlikely(!t->load_threshold && stats.online_cpus == NUM_POSSIBLE_CPUS))
-    {
+	{
 		goto reschedule;
-    }
+	}
 
 	for (cpu = 0; cpu < 2; cpu++)
 	{
 		cur_load += cpufreq_quick_get_util(cpu);
 	}
     
-    if (cur_load >= (t->load_threshold * 2))
+	if (cur_load >= (t->load_threshold * 2))
 	{
 		if (stats.counter < t->max_load_counter)
 			++stats.counter;
 		
-		if (stats.online_cpus < NUM_POSSIBLE_CPUS)
-			cpu_revive(cur_load);
+		cpu_revive(cur_load);
 	}
 	else
 	{
 		if (stats.counter)
 			--stats.counter;
 
-		if (stats.online_cpus > 2)
-			cpu_smash();
-    }
+		cpu_smash();
+	}
 
 reschedule:
 	queue_delayed_work_on(0, wq, &decide_hotplug,
