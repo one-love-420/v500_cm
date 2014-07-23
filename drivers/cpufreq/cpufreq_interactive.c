@@ -1159,7 +1159,6 @@ static struct attribute *interactive_attributes[] = {
 	&timer_rate_attr.attr,
 	&input_boost_freq_attr.attr,
 	&timer_slack.attr,
-	//&boostpulse.attr,
 	&boostpulse_duration.attr,
 	&io_is_busy_attr.attr,
 	&sampling_down_factor_attr.attr,
@@ -1228,9 +1227,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			pcpu->governor_enabled = 1;
 			up_write(&pcpu->enable_sem);
 		}
-
-		//if (!boosted_time)
-			//boosted_time = jiffies;
 
 		/*
 		 * Do not register the idle hook and create sysfs
@@ -1367,13 +1363,6 @@ static int __init cpufreq_interactive_init(void)
 		init_rwsem(&pcpu->enable_sem);
 	}
 
-	//input_wq = alloc_workqueue("input_wq", 0, 1);
-
-	//if (!input_wq)
-		//return -EINVAL;
-
-	//INIT_WORK(&input_work, cpufreq_interactive_boost);
-
 	spin_lock_init(&target_loads_lock);
 	spin_lock_init(&speedchange_cpumask_lock);
 	spin_lock_init(&above_hispeed_delay_lock);
@@ -1404,7 +1393,6 @@ static void __exit cpufreq_interactive_exit(void)
 	cpufreq_unregister_governor(&cpufreq_gov_interactive);
 	kthread_stop(speedchange_task);
 	put_task_struct(speedchange_task);
-	//destroy_workqueue(input_wq);
 }
 
 module_exit(cpufreq_interactive_exit);
