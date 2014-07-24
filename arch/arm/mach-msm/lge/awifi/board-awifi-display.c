@@ -727,8 +727,7 @@ static char enter_sleep_mode            [2] = {0x10, 0x00};
 static char display_on                  [2] = {0x29, 0x00};
 static char display_off                 [2] = {0x28, 0x00};
 
-static char set_address_mode            [2] = {0x36, 0x40}; //0x01 in cmd_mode
-static char set_gamma_curve		[2] = {0x26, 0x01};
+static char set_address_mode            [2] = {0x36, 0x01}; //0x40 in video_mode
 
 #define PF_16BIT 0x50
 #define PF_18BIT 0x60
@@ -755,7 +754,6 @@ static char set_pwm_duty_LD083WU1	[2] = {0xbb, 0xff};
 static struct dsi_cmd_desc lgit_power_on_set_1_LD083WU1[] = {
 	/* Display Initial Set */
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_address_mode),set_address_mode},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_gamma_curve),set_gamma_curve},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(set_pixel_format),set_pixel_format},
 
 #if defined(CONFIG_LGE_BACKLIGHT_CABC)
