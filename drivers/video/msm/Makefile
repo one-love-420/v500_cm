@@ -1,4 +1,4 @@
-difeq ($(CONFIG_FB_MSM_MDSS),y)
+ifeq ($(CONFIG_FB_MSM_MDSS),y)
 obj-y += mdss/
 else
 obj-y := msm_fb.o
@@ -70,7 +70,7 @@ obj-$(CONFIG_FB_MSM_MDDI) += msm_mddi.o
 msm_mddi_ext-objs := mddihost_e.o mddi_ext.o
 obj-$(CONFIG_FB_MSM_EXTMDDI) += msm_mddi_ext.o
 
-# MIPI generic
+# MIPI gereric
 msm_mipi-objs := mipi_dsi.o mipi_dsi_host.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI) += msm_mipi.o
 

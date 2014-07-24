@@ -344,7 +344,7 @@ int mipi_dsi_buf_alloc(struct dsi_buf *dp, int size)
 }
 
 /*
- * mipi dsi generic long write
+ * mipi dsi gerneric long write
  */
 static int mipi_dsi_generic_lwrite(struct dsi_buf *dp, struct dsi_cmd_desc *cm)
 {
@@ -427,7 +427,7 @@ static int mipi_dsi_generic_swrite(struct dsi_buf *dp, struct dsi_cmd_desc *cm)
 }
 
 /*
- * mipi dsi gerneric read with 0, 1, 2 parameters
+ * mipi dsi gerneric read with 0, 1 2 parameters
  */
 static int mipi_dsi_generic_read(struct dsi_buf *dp, struct dsi_cmd_desc *cm)
 {
