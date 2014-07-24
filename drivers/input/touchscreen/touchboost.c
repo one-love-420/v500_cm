@@ -24,7 +24,7 @@
 #include <linux/input.h>
 #include <linux/time.h>
 
-#define MIM_TIME_INTERVAL_MS 10
+#define MIM_TIME_INTERVAL_US (150 * USEC_PER_MSEC)
 
 /*
  * Use this variable in your governor of choice to calculate when the cpufreq
@@ -43,12 +43,12 @@ static void boost_input_event(struct input_handle *handle,
 {
 	u64 now;
 
-	now = ktime_to_ms(ktime_get());
+	now = ktime_to_us(ktime_get());
 
-	if (now - last_input_time < MIM_TIME_INTERVAL_MS)
+	if (now - last_input_time < MIM_TIME_INTERVAL_US)
 		return;
 
-	last_input_time = ktime_to_ms(ktime_get());
+	last_input_time = ktime_to_us(ktime_get());
 }
 
 static void boost_input_open(struct work_struct *w)

@@ -75,8 +75,8 @@ static int __secure_tz_entry3(u32 cmd, u32 val1, u32 val2,
 }
 #endif
 
-unsigned int up_threshold = 50;
-unsigned int down_threshold = 25;
+unsigned int up_threshold = 55;
+unsigned int down_threshold = 30;
 unsigned int up_differential = 10;
 bool debug = 0;
 
