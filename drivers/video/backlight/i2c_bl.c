@@ -80,7 +80,7 @@ static void i2c_bl_hw_reset(struct i2c_client *client)
 	//Disable warning: struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
 	//struct i2c_bl_platform_data *pdata = client->dev.platform_data;
-	int gpio = i2c_bl_dev->gpio;
+	int gpio = main_i2c_bl_dev->gpio;
 
 	if (gpio_is_valid(gpio)) {
 		gpio_direction_output(gpio, 1);
@@ -178,7 +178,7 @@ static void i2c_bl_backlight_off(struct i2c_client *client)
 {
 	//struct i2c_bl_platform_data *pdata = (struct i2c_bl_platform_data *)client->dev.platform_data;
 	struct i2c_bl_device *i2c_bl_dev = (struct i2c_bl_device *)i2c_get_clientdata(client);
-	int gpio = i2c_bl_dev->gpio;
+	int gpio = main_i2c_bl_dev->gpio;
 
 	pr_info("%s, on: %d\n", __func__, backlight_status);
 
@@ -471,11 +471,11 @@ static int i2c_bl_remove(struct i2c_client *client)
 	device_remove_file(&client->dev, &dev_attr_basekk);
 	i2c_set_clientdata(client, NULL);
 
-	if (gpio_is_valid(i2c_bl_dev->gpio))
-		gpio_free(i2c_bl_dev->gpio);
+	if (gpio_is_valid(main_i2c_bl_dev->gpio))
+		gpio_free(main_i2c_bl_dev->gpio);
 
-	backlight_device_unregister(i2c_bl_dev->bl_dev);
-	kfree(i2c_bl_dev);
+	backlight_device_unregister(main_i2c_bl_dev->bl_dev);
+	kfree(main_i2c_bl_dev);
 
 	return 0;
 }
