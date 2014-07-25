@@ -219,6 +219,7 @@ char *pp_iface_stat(struct iface_stat *is)
 				is->active,
 				is->net_dev,
 				is->proc_ptr);
+	}
 	_bug_on_err_or_null(res);
 	return res;
 }
