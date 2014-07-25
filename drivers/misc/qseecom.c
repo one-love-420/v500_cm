@@ -599,13 +599,13 @@ static int __qseecom_process_incomplete_cmd(struct qseecom_dev_handle *data,
 			}
 			pr_warning("Interrupted_patchQCT: send_cmd loop timeout wait\n");
 		} while (1);
-		#else
+		//#else
 		/*if (wait_event_freezable(qseecom.send_resp_wq,
 				__qseecom_listener_has_sent_rsp(data))) {
 			pr_warning("Interrupted: exiting send_cmd loop\n");
 			return -ERESTARTSYS;
 		} */
-		//#endif
+		#endif
 
 		/* initialize the new signal mask with all signals*/
 		sigfillset(&new_sigset);
