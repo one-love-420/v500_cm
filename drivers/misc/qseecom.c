@@ -551,6 +551,8 @@ static int __qseecom_process_incomplete_cmd(struct qseecom_dev_handle *data,
 	unsigned long flags;
 	struct qseecom_client_listener_data_irsp send_data_rsp;
 	struct qseecom_registered_listener_list *ptr_svc = NULL;
+	sigset_t new_sigset;
+	sigset_t old_sigset;
 
 	#if 0//defined(CONFIG_LGE_BROADCAST_ONESEG) //QCT Patch SFS Fail
 	unsigned long end_time = 0;
@@ -598,16 +600,31 @@ static int __qseecom_process_incomplete_cmd(struct qseecom_dev_handle *data,
 			pr_warning("Interrupted_patchQCT: send_cmd loop timeout wait\n");
 		} while (1);
 		#else
-		if (wait_event_freezable(qseecom.send_resp_wq,
+		/*if (wait_event_freezable(qseecom.send_resp_wq,
 				__qseecom_listener_has_sent_rsp(data))) {
 			pr_warning("Interrupted: exiting send_cmd loop\n");
 			return -ERESTARTSYS;
-		}
-		#endif
-		
+		} */
+		//#endif
+
+		/* initialize the new signal mask with all signals*/
+		sigfillset(&new_sigset);
+		/* block all signals */
+		sigprocmask(SIG_SETMASK, &new_sigset, &old_sigset);
+
+		do {
+			if (!wait_event_freezable(qseecom.send_resp_wq,
+				__qseecom_listener_has_sent_rsp(data)))
+				break;
+		} while (1);
+
+		/* restore signal mask */
+		sigprocmask(SIG_SETMASK, &old_sigset, NULL);
 		if (data->abort) {
-			pr_err("Aborting listener service %d\n",
-				data->listener.id);
+			//pr_err("Aborting listener service %d\n",
+				//data->listener.id);
+			pr_err("Abort clnt %d waiting on lstnr svc %d, ret %d",
+				data->client.app_id, lstnr, ret);
 			return -ENODEV;
 		}
 		qseecom.send_resp_flag = 0;
