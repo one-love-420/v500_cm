@@ -174,10 +174,8 @@ static u32 mdp_irq;
 static uint32 mdp_prim_panel_type = NO_PANEL;
 #ifndef CONFIG_FB_MSM_MDP22
 
-#define MDP_HIST_LUT_SIZE (256)
 struct list_head mdp_hist_lut_list;
 DEFINE_MUTEX(mdp_hist_lut_list_mutex);
-uint32_t last_lut[MDP_HIST_LUT_SIZE];
 
 uint32_t mdp_block2base(uint32_t block)
 {
@@ -304,14 +302,10 @@ static int mdp_hist_lut_destroy(void)
 
 static int mdp_hist_lut_init(void)
 {
-	int i;
 	struct mdp_hist_lut_mgmt *temp;
 
 	if (mdp_pp_initialized)
 		return -EEXIST;
-
-	for (i = 0; i < MDP_HIST_LUT_SIZE; i++)
-		last_lut[i] = i | (i << 8) | (i << 16);
 
 	INIT_LIST_HEAD(&mdp_hist_lut_list);
 
@@ -372,6 +366,7 @@ static int mdp_hist_lut_block2mgmt(uint32_t block,
 	return ret;
 }
 
+#define MDP_HIST_LUT_SIZE (256)
 static int mdp_hist_lut_write_off(struct mdp_hist_lut_data *data,
 		struct mdp_hist_lut_info *info, uint32_t offset)
 {
@@ -393,11 +388,9 @@ static int mdp_hist_lut_write_off(struct mdp_hist_lut_data *data,
 	}
 	mdp_clk_ctrl(1);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	for (i = 0; i < MDP_HIST_LUT_SIZE; i++) {
-		last_lut[i] = element[i];
+	for (i = 0; i < MDP_HIST_LUT_SIZE; i++)
 		MDP_OUTP(MDP_BASE + base + offset + (0x400*(sel)) + (4*i),
 				element[i]);
-	}
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	mdp_clk_ctrl(0);
 
@@ -599,15 +592,15 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 		}
 #endif
 
-		last_lut[i] = ((g & 0xff) | ((b & 0xff) << 8) |
-				((r & 0xff) << 16));
-
 #ifdef CONFIG_FB_MSM_MDP40
 		MDP_OUTP(MDP_BASE + 0x94800 +
 #else
 		MDP_OUTP(MDP_BASE + 0x93800 +
 #endif
-			(0x400*mdp_lut_i) + cmap->start*4 + i*4, last_lut[i]);
+			(0x400*mdp_lut_i) + cmap->start*4 + i*4,
+				((g & 0xff) |
+				 ((b & 0xff) << 8) |
+				 ((r & 0xff) << 16)));
 	}
 
 	return 0;
@@ -615,28 +608,6 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 
 static int mdp_lut_push;
 static int mdp_lut_push_i;
-static int mdp_lut_resume_needed;
-
-static void mdp_lut_status_restore(void)
-{
-	unsigned long flags;
-
-	if (mdp_lut_resume_needed) {
-		spin_lock_irqsave(&mdp_lut_push_lock, flags);
-		mdp_lut_push = 1;
-		spin_unlock_irqrestore(&mdp_lut_push_lock, flags);
-	}
-}
-
-static void mdp_lut_status_backup(void)
-{
-	uint32_t status = inpdw(MDP_BASE + 0x90070) & 0x7;
-	if (status)
-		mdp_lut_resume_needed = 1;
-	else
-		mdp_lut_resume_needed = 0;
-}
-
 static int mdp_lut_update_nonlcdc(struct fb_info *info, struct fb_cmap *cmap)
 {
 	int ret;
@@ -684,43 +655,6 @@ static int mdp_lut_update_lcdc(struct fb_info *info, struct fb_cmap *cmap)
 
 	return 0;
 }
-
-#ifdef CONFIG_UPDATE_LCDC_LUT
-int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
-{
-	uint32_t out;
-	int i;
-	u16 r, g, b;
-
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	mdp_clk_ctrl(1);
-  
-	for (i = 0; i < cmap->len; i++) {
-		r = lut2r(internal_lut[i]);
-		g = lut2g(internal_lut[i]);
-		b = lut2b(internal_lut[i]);
-#ifdef CONFIG_LCD_KCAL
-		r = scaled_by_kcal(r, *(cmap->red));
-		g = scaled_by_kcal(g, *(cmap->green));
-		b = scaled_by_kcal(b, *(cmap->blue));
-#endif
-		MDP_OUTP(MDP_BASE + 0x94800 +
-			(0x400*mdp_lut_i) + cmap->start*4 + i*4,
-				((g & 0xff) |
-				 ((b & 0xff) << 8) |
-				 ((r & 0xff) << 16)));
-	}
-
-	/*mask off non LUT select bits*/
-	out = inpdw(MDP_BASE + 0x90070) & ~((0x1 << 10) | 0x7);
-	MDP_OUTP(MDP_BASE + 0x90070, (mdp_lut_i << 10) | 0x7 | out);
-	mdp_clk_ctrl(0);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-	mdp_lut_i = (mdp_lut_i + 1)%2;
-
-	return 0;
-}
-#endif
 
 static void mdp_lut_enable(void)
 {
@@ -2414,7 +2348,6 @@ static int mdp_off(struct platform_device *pdev)
 	complete_all(&vsync_cntrl.vsync_wait);
 
 	mdp_clk_ctrl(1);
-	mdp_lut_status_backup();
 
 	ret = panel_next_early_off(pdev);
 
@@ -2459,7 +2392,6 @@ static int mdp_on(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct msm_fb_data_type *mfd;
-	int i;
 	mfd = platform_get_drvdata(pdev);
 
 	pr_debug("%s:+\n", __func__);
@@ -2479,12 +2411,6 @@ static int mdp_on(struct platform_device *pdev)
 		mdp_clk_ctrl(1);
 		mdp_bus_scale_restore_request();
 		mdp4_hw_init();
-		/* Initialize HistLUT to last LUT */
-		for (i = 0; i < MDP_HIST_LUT_SIZE; i++) {
-			MDP_OUTP(MDP_BASE + 0x94800 + i*4, last_lut[i]);
-			MDP_OUTP(MDP_BASE + 0x94C00 + i*4, last_lut[i]);
-		}
-		mdp_lut_status_restore();
 		outpdw(MDP_BASE + 0x0038, mdp4_display_intf);
 		if (mfd->panel.type == MIPI_CMD_PANEL) {
 			mdp_vsync_cfg_regs(mfd, FALSE);

@@ -928,8 +928,4 @@ static inline void mdp_vid_quant_set(void)
 	/* empty */
 }
 #endif
-
-#ifdef CONFIG_UPDATE_LCDC_LUT
-int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut);
-#endif
 #endif /* MDP_H */
