@@ -970,7 +970,7 @@ static struct pm8xxx_keypad_platform_data keypad_data = {
 };
 #if defined (CONFIG_PMIC8XXX_VIBRATOR) || ((CONFIG_MACH_APQ8064_AWIFI) && (CONFIG_TSPDRV))
 static struct pm8xxx_vibrator_platform_data pm8xxx_vibrator_pdata = {
-	.initial_vibrate_ms = 0,
+	.initial_vibrate_ms = 500,
 	.max_timeout_ms = 30000,
 	.level_mV =2300,
 };

@@ -13,14 +13,17 @@
   * GNU General Public License for more details.
   */
 
+#include <linux/platform_device.h>
+#include <linux/gpio.h>
+#include <linux/i2c.h>
 #include <linux/types.h>
 #include <linux/err.h>
 #include <mach/msm_iomap.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
-#include <linux/platform_device.h>
+
 #include <linux/delay.h>
-#include <linux/gpio.h>
+
 #include <mach/gpiomux.h>
 //#include <linux/regulator/gpio-regulator.h>
 #include <mach/board_lge.h>
@@ -28,7 +31,7 @@
 #include "devices.h"
 #include <linux/android_vibrator.h>
 
-#include <linux/i2c.h>
+
 
 #ifdef CONFIG_SLIMPORT_ANX7808
 #include <linux/platform_data/slimport_device.h>
