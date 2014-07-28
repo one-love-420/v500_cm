@@ -22,7 +22,8 @@
 #include <linux/module.h>
 #include <mach/board_lge.h>
 
-static bool lut_updated = false; 
+static bool lut_updated = false;
+static bool lut_reseted = false; 
 static struct kcal_platform_data *kcal_pdata;
 static int last_status_kcal_ctrl;
 extern void updateLUT(unsigned int lut_val, unsigned int color,
@@ -81,8 +82,10 @@ static ssize_t kgamma_reset_store(struct device *dev,
 
 	sscanf(buf, "%u", &reset);
 
-	if (reset)
+	if (reset) {
 		resetWorkingLut();
+		lut_reseted = true;
+	}
 
 	return count;
 }
@@ -91,7 +94,15 @@ static ssize_t kgamma_reset_show(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
-	return 0;
+	int res = 0;
+
+	if (lut_reseted) {
+		res = sprintf(buf, "OK\n");
+		lut_reseted = false;
+	} else 
+		res = sprintf(buf, "NG\n");
+
+	return res;
 }
 
 static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
