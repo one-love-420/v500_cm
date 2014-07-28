@@ -21,6 +21,14 @@ extern int g_kcal_r;
 extern int g_kcal_g;
 extern int g_kcal_b;
 extern unsigned int p_lg_qc_lcdc_lut[256];
+extern unsigned int lcd_rgb_linear_lut[256];
+
+void resetWorkingLut(void)
+{
+	memcpy((void *)p_lg_qc_lcdc_lut, (void *)lcd_rgb_linear_lut,
+		sizeof(lcd_rgb_linear_lut));
+}
+EXPORT_SYMBOL(resetWorkingLut);
 
 void updateLUT(unsigned int lut_val, unsigned int color,
 			unsigned int posn)
@@ -47,6 +55,21 @@ void updateLUT(unsigned int lut_val, unsigned int color,
 					(lut_val << offset); 
 }
 EXPORT_SYMBOL(updateLUT);
+
+bool calc_checksum(unsigned int a, unsigned int b,
+			unsigned int c, unsigned int d)
+{
+	unsigned char chksum = 0;
+
+	chksum = ~((a & 0xff) + (b & 0xff) + (c & 0xff));
+
+	if (chksum == (d & 0xff)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+EXPORT_SYMBOL(calc_checksum);
 
 static int set_qlut_kcal_values(int kcal_r, int kcal_g, int kcal_b)
 {

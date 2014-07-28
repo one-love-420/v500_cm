@@ -27,16 +27,19 @@ static struct kcal_platform_data *kcal_pdata;
 static int last_status_kcal_ctrl;
 extern void updateLUT(unsigned int lut_val, unsigned int color,
 			unsigned int posn);
+extern bool calc_checksum(unsigned int a, unsigned int b,
+			unsigned int c, unsigned int d);
+extern void resetWorkingLut(void);
 
 static ssize_t kgamma_store(struct device *dev, struct device_attribute *attr,
                                                 const char *buf, size_t count)
 {
-	int lut, color, posn;
+	int lut, color, posn, key, tmp;
 
 	if (!count)
 		return -EINVAL;
 
-	sscanf(buf, "%u %u %u", &lut, &color, &posn);
+	sscanf(buf, "%u %u %u %u", &lut, &color, &posn, &key);
 
 	if (lut > 0xff)
 		return count;
@@ -47,16 +50,17 @@ static ssize_t kgamma_store(struct device *dev, struct device_attribute *attr,
 	if (color > 2)
 		return count;
 
-	updateLUT(lut, color, posn);
-	lut_updated = true;
+	tmp = (lut + color + posn) & 0xff;
+	if (key == tmp) {
+		updateLUT(lut, color, posn);
+		lut_updated = true;
+	}
 	return count;
 }
 
 static ssize_t kgamma_show(struct device *dev, struct device_attribute *attr,
                                                                 char *buf)
 {
-	return sprintf(buf, "lut color pos");
-#if 0
 	int res = 0;
 
 	if (lut_updated) {
@@ -66,7 +70,30 @@ static ssize_t kgamma_show(struct device *dev, struct device_attribute *attr,
 		res = sprintf(buf, "NG\n");
 
 	return res;
-#endif
+}
+
+static ssize_t kgamma_reset_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int reset;
+
+	if (!count)
+		return -EINVAL;
+
+	sscanf(buf, "%u", &reset);
+
+	if (reset)
+		resetWorkingLut();
+
+	return count;
+}
+
+static ssize_t kgamma_reset_show(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
+{
+	return 0;
 }
 
 static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
@@ -75,12 +102,17 @@ static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 	int kcal_r = 0;
 	int kcal_g = 0;
 	int kcal_b = 0;
+	int chksum = 0;
 
 	if (!count)
 		return -EINVAL;
 
-	sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
-	kcal_pdata->set_values(kcal_r, kcal_g, kcal_b);
+	sscanf(buf, "%d %d %d %d", &kcal_r, &kcal_g, &kcal_b, &chksum);
+	chksum = (chksum & 0x0000ff00) >> 8;
+
+	if (calc_checksum(kcal_r, kcal_g, kcal_b, chksum))
+		kcal_pdata->set_values(kcal_r, kcal_g, kcal_b);
+
 	return count;
 }
 
@@ -125,6 +157,7 @@ static ssize_t kcal_ctrl_show(struct device *dev,
 		return sprintf(buf, "OK\n");
 }
 
+static DEVICE_ATTR(power_reset, 0644, kgamma_reset_show, kgamma_reset_store);
 static DEVICE_ATTR(power_line, 0644, kgamma_show, kgamma_store); 
 static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
 static DEVICE_ATTR(kcal_ctrl, 0644, kcal_ctrl_show, kcal_ctrl_store);
@@ -140,6 +173,9 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 		return -1;
 	}
 
+	rc = device_create_file(&pdev->dev, &dev_attr_power_reset);
+	if(rc !=0)
+		return -1;
 	rc = device_create_file(&pdev->dev, &dev_attr_power_line);
 	if(rc !=0)
 		return -1;
