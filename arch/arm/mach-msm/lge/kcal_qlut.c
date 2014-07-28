@@ -56,21 +56,6 @@ void updateLUT(unsigned int lut_val, unsigned int color,
 }
 EXPORT_SYMBOL(updateLUT);
 
-bool calc_checksum(unsigned int a, unsigned int b,
-			unsigned int c, unsigned int d)
-{
-	unsigned char chksum = 0;
-
-	chksum = ~((a & 0xff) + (b & 0xff) + (c & 0xff));
-
-	if (chksum == (d & 0xff)) {
-		return true;
-	} else {
-		return false;
-	}
-}
-EXPORT_SYMBOL(calc_checksum);
-
 static int set_qlut_kcal_values(int kcal_r, int kcal_g, int kcal_b)
 {
 	g_kcal_r = kcal_r;
