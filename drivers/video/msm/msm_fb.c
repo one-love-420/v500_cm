@@ -4720,6 +4720,7 @@ msm_fb_read(struct fb_info *info, char __user *buf, size_t count, loff_t *ppos)
 #endif
 
 #if defined(CONFIG_LGE_QC_LCDC_LUT)
+extern unsigned int p_lg_qc_lcdc_lut[256];
 int lge_set_qlut(void)
 {
 	struct fb_cmap cmap;
@@ -4728,6 +4729,7 @@ int lge_set_qlut(void)
 	cmap.start	= 0;
 	cmap.len	= 256;
 	cmap.transp	= 0;
+
 	cmap.red	= NULL;
 	cmap.green	= NULL;
 	cmap.blue	= NULL;

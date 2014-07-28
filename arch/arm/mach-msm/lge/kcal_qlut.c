@@ -20,6 +20,33 @@ extern int lge_set_qlut(void);
 extern int g_kcal_r;
 extern int g_kcal_g;
 extern int g_kcal_b;
+extern unsigned int p_lg_qc_lcdc_lut[256];
+
+void updateLUT(unsigned int lut_val, unsigned int color,
+			unsigned int posn)
+{
+	int offset, mask;
+
+	if (lut_val > 0xff)
+		return;
+
+	if (color == 0) {
+		offset = 16;
+		mask = 0x0000ffff;
+	} else if (color == 1) {
+		offset = 8;
+		mask = 0x00ff00ff;
+	} else if (color == 2) {
+		offset = 0;
+		mask = 0x00ffff00;
+	} else
+		// bad color select!
+		return;
+
+	p_lg_qc_lcdc_lut[posn] = (p_lg_qc_lcdc_lut[posn] & mask) |
+					(lut_val << offset); 
+}
+EXPORT_SYMBOL(updateLUT);
 
 static int set_qlut_kcal_values(int kcal_r, int kcal_g, int kcal_b)
 {

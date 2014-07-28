@@ -14,7 +14,7 @@
  * GNU General Public License for more details.
  *
  */
-
+ 
 #include <linux/kernel.h>
 #include <linux/device.h>
 #include <linux/platform_device.h>
@@ -22,8 +22,52 @@
 #include <linux/module.h>
 #include <mach/board_lge.h>
 
+static bool lut_updated = false; 
 static struct kcal_platform_data *kcal_pdata;
 static int last_status_kcal_ctrl;
+extern void updateLUT(unsigned int lut_val, unsigned int color,
+			unsigned int posn);
+
+static ssize_t kgamma_store(struct device *dev, struct device_attribute *attr,
+                                                const char *buf, size_t count)
+{
+	int lut, color, posn;
+
+	if (!count)
+		return -EINVAL;
+
+	sscanf(buf, "%u %u %u", &lut, &color, &posn);
+
+	if (lut > 0xff)
+		return count;
+
+	if (posn > 0xff)
+		return count;
+
+	if (color > 2)
+		return count;
+
+	updateLUT(lut, color, posn);
+	lut_updated = true;
+	return count;
+}
+
+static ssize_t kgamma_show(struct device *dev, struct device_attribute *attr,
+                                                                char *buf)
+{
+	return sprintf(buf, "lut color pos");
+#if 0
+	int res = 0;
+
+	if (lut_updated) {
+		res = sprintf(buf, "OK\n");
+		lut_updated = false;
+	} else 
+		res = sprintf(buf, "NG\n");
+
+	return res;
+#endif
+}
 
 static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 						const char *buf, size_t count)
@@ -81,6 +125,7 @@ static ssize_t kcal_ctrl_show(struct device *dev,
 		return sprintf(buf, "OK\n");
 }
 
+static DEVICE_ATTR(power_line, 0644, kgamma_show, kgamma_store); 
 static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
 static DEVICE_ATTR(kcal_ctrl, 0644, kcal_ctrl_show, kcal_ctrl_store);
 
@@ -95,6 +140,9 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 		return -1;
 	}
 
+	rc = device_create_file(&pdev->dev, &dev_attr_power_line);
+	if(rc !=0)
+		return -1;
 	rc = device_create_file(&pdev->dev, &dev_attr_kcal);
 	if(rc !=0)
 		return -1;
