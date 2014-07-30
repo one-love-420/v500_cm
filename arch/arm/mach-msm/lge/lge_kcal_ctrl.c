@@ -22,10 +22,6 @@
 #include <linux/module.h>
 #include <mach/board_lge.h>
 
-#define KCAL_CTRL_MAJOR_VERSION	1
-#define KCAL_CTRL_MINOR_VERSION	0
-#define KCAL_PLATFORM_NAME      "DIAG0"
-
 static bool lut_updated = false;
 static bool lut_reseted = false; 
 static struct kcal_platform_data *kcal_pdata;
@@ -165,19 +161,10 @@ static ssize_t kcal_ctrl_show(struct device *dev,
 		return sprintf(buf, "OK\n");
 }
 
-static ssize_t kcal_version_show(struct device *dev,
-                                struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d.%d\n",
-			KCAL_CTRL_MAJOR_VERSION,
-			KCAL_CTRL_MINOR_VERSION);
-}
-
 static DEVICE_ATTR(power_reset, 0644, kgamma_reset_show, kgamma_reset_store);
 static DEVICE_ATTR(power_line, 0644, kgamma_show, kgamma_store); 
-static DEVICE_ATTR(power_rail, 0644, kcal_show, kcal_store);
-static DEVICE_ATTR(power_rail_ctrl, 0644, kcal_ctrl_show, kcal_ctrl_store);
-static DEVICE_ATTR(power_rail_version, 0444, kcal_version_show, NULL);
+static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
+static DEVICE_ATTR(kcal_ctrl, 0644, kcal_ctrl_show, kcal_ctrl_store);
 
 static int kcal_ctrl_probe(struct platform_device *pdev)
 {
@@ -196,13 +183,10 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	rc = device_create_file(&pdev->dev, &dev_attr_power_line);
 	if(rc !=0)
 		return -1;
-	rc = device_create_file(&pdev->dev, &dev_attr_power_rail);
+	rc = device_create_file(&pdev->dev, &dev_attr_kcal);
 	if(rc !=0)
 		return -1;
-	rc = device_create_file(&pdev->dev, &dev_attr_power_rail_ctrl);
-	if(rc !=0)
-		return -1;
-	rc = device_create_file(&pdev->dev, &dev_attr_power_rail_version);
+	rc = device_create_file(&pdev->dev, &dev_attr_kcal_ctrl);
 	if(rc !=0)
 		return -1;
 
@@ -211,7 +195,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 static struct platform_driver this_driver = {
 	.probe  = kcal_ctrl_probe,
 	.driver = {
-		.name   = "DIAG0",
+		.name   = "kcal_ctrl",
 	},
 };
 

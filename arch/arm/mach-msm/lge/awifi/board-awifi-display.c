@@ -272,7 +272,7 @@ static struct kcal_platform_data kcal_pdata = {
 };
 
 static struct platform_device kcal_platrom_device = {
-	.name   = "DIAG0",
+	.name   = "kcal_ctrl",
 	.dev = {
 		.platform_data = &kcal_pdata,
 	}
