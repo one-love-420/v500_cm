@@ -2047,9 +2047,6 @@ config CP_ACCESS
 	  /sys/devices/cpaccess/cpaccess0.
 
 	  If unsure, say N.
-	  
-# 2013-05-02 Hyoungtaek-Lim[hyoungtaek.lim@lge.com)[A/vmware/common]VMware Switch
-source "arch/arm/mvp/Kconfig"
 
 endmenu
 
