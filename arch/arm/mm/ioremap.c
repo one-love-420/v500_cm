@@ -40,7 +40,7 @@
 
 
 LIST_HEAD(static_vmlist);
-
+#if 0
 static struct static_vm *find_static_vm_paddr(phys_addr_t paddr,
 			size_t size, unsigned int mtype)
 {
@@ -63,6 +63,7 @@ static struct static_vm *find_static_vm_paddr(phys_addr_t paddr,
 
 	return NULL;
 }
+#endif
 
 struct static_vm *find_static_vm_vaddr(void *vaddr)
 {
