@@ -2699,7 +2699,7 @@ static int calculate_state_of_charge(struct pm8921_bms_chip *chip,
 static int recalculate_soc(struct pm8921_bms_chip *chip)
 {
 #if !defined(CONFIG_LGE_PM_EXT_GAUGE)
-	int batt_temp;
+	int batt_temp = 0;
 	struct pm8921_soc_params raw;
 	int soc;
 
@@ -3097,7 +3097,7 @@ static void calculate_real_soc(struct pm8921_bms_chip *chip, int *soc,
 void pm8921_bms_charging_began(void)
 {
 	struct pm8921_soc_params raw;
-	int batt_temp;
+	int batt_temp = 0;
 
 	get_batt_temp(the_chip, &batt_temp);
 
