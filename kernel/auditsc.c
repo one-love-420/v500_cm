@@ -1072,6 +1072,7 @@ static inline struct audit_context *audit_alloc_context(enum audit_state state)
  * specified task.  This is called from copy_process, so no lock is
  * needed.
  */
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 int audit_alloc(struct task_struct *tsk)
 {
 	struct audit_context *context;

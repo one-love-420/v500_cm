@@ -1954,7 +1954,7 @@ void sp_tx_video_mute(unchar enable)
 
 void sp_tx_send_message(enum SP_TX_SEND_MSG message)
 {
-	unchar c;
+	unchar c = 0;
 
 	switch (message) {
 	case MSG_OCM_EN:
@@ -2049,7 +2049,7 @@ unchar sp_tx_get_cable_type(void)
 
 bool sp_tx_get_hdmi_connection(void)
 {
-	unchar c;
+	unchar c = 0;
 	msleep(200);
 
 	sp_tx_aux_dpcdread_bytes(0x00, 0x05, 0x18, 1, &c);
@@ -2061,7 +2061,7 @@ bool sp_tx_get_hdmi_connection(void)
 
 bool sp_tx_get_vga_connection(void)
 {
-	unchar c;
+	unchar c = 0;
 	sp_tx_aux_dpcdread_bytes(0x00, 0x02, DPCD_SINK_COUNT, 1, &c);
 	if (c & 0x01)
 		return TRUE;
@@ -2071,7 +2071,7 @@ bool sp_tx_get_vga_connection(void)
 
 static bool sp_tx_get_ds_video_status(void)
 {
-	unchar c;
+	unchar c = 0;
 	sp_tx_aux_dpcdread_bytes(0x00, 0x05, 0x27, 1, &c);
 	if (c & 0x01)
 		return TRUE;
@@ -2081,7 +2081,7 @@ static bool sp_tx_get_ds_video_status(void)
 
 bool sp_tx_get_dp_connection(void)
 {
-	unchar c;
+	unchar c = 0;
 
 	sp_tx_aux_dpcdread_bytes(0x00, 0x02, DPCD_SINK_COUNT, 1, &c);
 	if (c & 0x1f) {
@@ -2096,7 +2096,7 @@ bool sp_tx_get_dp_connection(void)
 void sp_tx_edid_read(void)
 {
 	unchar i, j, edid_block = 0, segment = 0, offset = 0;
-	unchar c;
+	unchar c = 0;
 	/*Add bandwidth check to support low
 	resolution for VGA and myDP monitor*/
 	sp_tx_get_rx_bw(1, &c);
@@ -2354,8 +2354,8 @@ static void sp_tx_polling_err_int_handler(void)
 
 static void sp_tx_irq_isr(void)
 {
-	unchar c, c1, lane0_1_status, sl_cr, al;
-	unchar IRQ_Vector, Int_vector1, Int_vector2;
+	unchar c, c1 = 0, lane0_1_status, sl_cr, al;
+	unchar IRQ_Vector, Int_vector1 = 0, Int_vector2 = 0;
 	unchar test_vector;
 
 	sp_tx_aux_dpcdread_bytes(0x00, 0x02, DPCD_SERVICE_IRQ_VECTOR, 1,
@@ -2637,7 +2637,7 @@ static void sp_tx_sink_irq_int_handler(void)
 
 void sp_tx_hdcp_process(void)
 {
-	unchar c;
+	unchar c = 0;
 	int i;
 
 	if (!sp_tx_hdcp_capable_chk) {
