@@ -1,5 +1,5 @@
 echo "build zImage"
-make -j3 -o3
+make -j3
 
 echo "copy zImage to ~/android/boot/<"
 cp arch/arm/boot/zImage ~/android/boot/
