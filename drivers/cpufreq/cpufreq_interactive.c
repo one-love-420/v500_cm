@@ -68,14 +68,14 @@ static spinlock_t speedchange_cpumask_lock;
 static struct mutex gov_lock;
 
 /* Hi speed to bump to from lo speed when load burst (default max) */
-static unsigned int hispeed_freq = 1134000;
+static unsigned int hispeed_freq = 918000;
 
 /* Go to hi speed when CPU load at or above this value. */
 #define DEFAULT_GO_HISPEED_LOAD 90
 static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 
 /* Sampling down factor to be applied to min_sample_time at max freq */
-#define DEFAULT_SAMPLING_DOWN_FACTOR 80000
+#define DEFAULT_SAMPLING_DOWN_FACTOR 90000
 static unsigned int sampling_down_factor = DEFAULT_SAMPLING_DOWN_FACTOR;
 
 /* Target load.  Lower values result in higher CPU speeds. */
@@ -92,13 +92,13 @@ static int ntarget_loads = ARRAY_SIZE(default_target_loads);
 /*
  * The minimum amount of time to spend at a frequency before we can ramp down.
  */
-#define DEFAULT_MIN_SAMPLE_TIME (40 * USEC_PER_MSEC)
+#define DEFAULT_MIN_SAMPLE_TIME (60 * USEC_PER_MSEC)
 static unsigned long min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 
 /*
  * The sample rate of the timer used to increase frequency
  */
-#define DEFAULT_TIMER_RATE 60000
+#define DEFAULT_TIMER_RATE (40 * USEC_PER_MSEC)
 static unsigned long timer_rate = DEFAULT_TIMER_RATE;
 
 /* Busy SDF parameters*/
@@ -117,7 +117,7 @@ static unsigned int *above_hispeed_delay = default_above_hispeed_delay;
 static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
 
 /* 1000ms - 1s */
-#define DEFAULT_BOOSTPULSE_DURATION 300000
+#define DEFAULT_BOOSTPULSE_DURATION 400000
 /* Duration of a boot pulse in usecs */
 static int boostpulse_duration_val = DEFAULT_BOOSTPULSE_DURATION;
 bool boosted;
@@ -135,11 +135,11 @@ static bool io_is_busy = true;
  * The CPU will be boosted to this frequency when the screen is
  * touched. input_boost needs to be enabled.
  */
-#define DEFAULT_INPUT_BOOST_FREQ 1026000
+#define DEFAULT_INPUT_BOOST_FREQ 1242000
 int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 extern u64 last_input_time;
 
-#define CPU_SYNC_FREQ 702000
+#define CPU_SYNC_FREQ 810000
 
 /*
  * If the max load among other CPUs is higher than up_threshold_any_cpu_load
@@ -150,7 +150,7 @@ extern u64 last_input_time;
 
 static unsigned int up_threshold_any_cpu_load = 80;
 static unsigned int sync_freq = CPU_SYNC_FREQ;
-static unsigned int up_threshold_any_cpu_freq = 1242000;
+static unsigned int up_threshold_any_cpu_freq = 1100000;
 
 static void cpufreq_interactive_timer_resched(
 	struct cpufreq_interactive_cpuinfo *pcpu)
