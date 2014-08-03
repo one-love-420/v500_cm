@@ -301,6 +301,11 @@ static bool is_user_regdom_saved(void)
 	return true;
 }
 
+static bool is_cfg80211_regdom_intersected(void)
+{
+	return is_intersected_alpha2(cfg80211_regdomain->alpha2);
+}
+
 static int reg_copy_regd(const struct ieee80211_regdomain **dst_regd,
 			 const struct ieee80211_regdomain *src_regd)
 {
@@ -898,13 +903,11 @@ static void handle_channel(struct wiphy *wiphy,
 	chan->max_reg_power = (int) MBM_TO_DBM(power_rule->max_eirp);
 	if (chan->orig_mpwr) {
 		/*
-		 * Devices that have their own custom regulatory domain
-		 * but also use WIPHY_FLAG_STRICT_REGULATORY will follow the
-		 * passed country IE power settings.
+		 * Devices that use NL80211_COUNTRY_IE_FOLLOW_POWER will always
+		 * follow the passed country IE power settings.
 		 */
 		if (initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE &&
-		    wiphy->flags & WIPHY_FLAG_CUSTOM_REGULATORY &&
-		    wiphy->flags & WIPHY_FLAG_STRICT_REGULATORY)
+		    wiphy->country_ie_pref & NL80211_COUNTRY_IE_FOLLOW_POWER)
 			chan->max_power = chan->max_reg_power;
 		else
 			chan->max_power = min(chan->orig_mpwr,
@@ -1322,6 +1325,8 @@ static int ignore_request(struct wiphy *wiphy,
 	case NL80211_REGDOM_SET_BY_CORE:
 		return 0;
 	case NL80211_REGDOM_SET_BY_COUNTRY_IE:
+		if (wiphy->country_ie_pref & NL80211_COUNTRY_IE_IGNORE_CORE)
+			return -EALREADY;
 
 		last_wiphy = wiphy_idx_to_wiphy(last_request->wiphy_idx);
 
@@ -1380,11 +1385,15 @@ static int ignore_request(struct wiphy *wiphy,
 		 * Process user requests only after previous user/driver/core
 		 * requests have been processed
 		 */
-		if (last_request->initiator == NL80211_REGDOM_SET_BY_CORE ||
-		    last_request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
-		    last_request->initiator == NL80211_REGDOM_SET_BY_USER) {
-			if (regdom_changes(last_request->alpha2))
-				return -EAGAIN;
+		if ((last_request->initiator == NL80211_REGDOM_SET_BY_CORE ||
+		     last_request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
+		     last_request->initiator == NL80211_REGDOM_SET_BY_USER)) {
+			if (last_request->intersect) {
+				if (!is_cfg80211_regdom_intersected())
+					return -EAGAIN;
+			} else if (regdom_changes(last_request->alpha2)) {
+  				return -EAGAIN;
+			}
 		}
 
 		if (!regdom_changes(pending_request->alpha2))
