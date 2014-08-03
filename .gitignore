@@ -63,6 +63,7 @@ include/config
 include/linux/version.h
 include/generated
 arch/*/include/generated
+zip/mani.zip
 
 # stgit generated dirs
 patches-*
