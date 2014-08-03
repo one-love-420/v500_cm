@@ -1,0 +1,99 @@
+v13: xx.08.14
+-row scheduler enabled
+-oom and mm patches
+-block patches
+-config update
+-tunables changed
+
+v12.5: 02.08.14
+-fix reboot on usb plug
+-enabled batteryefficient configs
+-disabled unnecessary configs
+-small patches
+
+v12: 01.08.14
+-linux 3.4.88
+-various config changes
+-o3 compiled
+-some patches
+
+v11: 30.07.14
+-various optimizations
+-reverted some changes to fix random reboots
+-changed some tunables to my liking
+
+v10: 27.07.14
+-aligned with franco updates
+-cleaned up defconfig
+-added some fixes
+-reverted some patches i was unsure of
+
+v9: 24.07.14
+-generic touchboost working
+-various kgsl patches 
+        (dont know how they work out yet)
+-optimized tunables to my liking
+        (give me feedback about your settings so i can optimize better)
+
+v8: 22.07.14
+-hotplug update
+-tunables updated
+-linaro compiled
+-ART fixed
+
+v7: 21.07.14
+-fixed camera recording issue
+-enabled some sound values
+(http://www.ti.com/lit/ds/symlink/tpa2028d1.pdf)
+  -atk_time
+  -rel_time
+  -max_gain
+-little camera changes
+
+v6: 20.07.14
+-fixes to futex, mutex
+-caf patches
+-more lm3532
+-more bugfixes
+
+v5: 18.07.14
+-v1.1 touchscreen driver
+-wifi changes
+-more backlight changes
+-more little fixes
+-development will slow down after this release
+
+v4: 17.07.14
+-set tcp westwood
+-lz4 compressed
+-small changes
+-for BOTH bases
+
+v3 updated: 16.07.14
+-tried to fix the random reboots
+-set dsi_video_mode
+-some security and stability patches
+-more lm3532 cleanups
+
+v3: 15.07.14
+-fixed: interactive governor
+-prima: v3.2.2.20
+-cabc enabled by default
+-little fixes
+-small v510 parity
+
+v2: 13.07.14
+-deadline as default (removed cfq)
+-interactive as default (removed ondemand)
+-interactive changes
+-thermal changes
+-lm3532 changes
+-little touchscreen changes
+-enabled dsi_cmd_mode for later use
+-other little changes 
+
+v1: 08.07.14
+-franco hotplug
+-franco thermal
+-uv table
+-simple gpu governor
