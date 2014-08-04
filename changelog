@@ -4,6 +4,7 @@ v13: xx.08.14
 -block patches
 -config update
 -tunables changed
+-enabled rcu
 
 v12.5: 02.08.14
 -fix reboot on usb plug
