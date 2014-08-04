@@ -2010,7 +2010,7 @@ void synchronize_rcu_bh(void)
 	if (rcu_expedited)
 		synchronize_rcu_bh_expedited();
 	else
-d		wait_rcu_gp(call_rcu_bh);
+		wait_rcu_gp(call_rcu_bh);
 }
 EXPORT_SYMBOL_GPL(synchronize_rcu_bh);
 
