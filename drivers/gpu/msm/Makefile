@@ -21,6 +21,7 @@ msm_adreno-y += \
 	adreno_ringbuffer.o \
 	adreno_drawctxt.o \
 	adreno_dispatch.o \
+	adreno_postmortem.o \
 	adreno_snapshot.o \
 	adreno_trace.o \
 	adreno_coresight.o \
