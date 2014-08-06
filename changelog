@@ -1,4 +1,8 @@
-v13: xx.08.14
+v14: xx.xx.14
+-faux123 gamma control
+	thx to @oubeichen
+
+v13: 04.08.14
 -row scheduler enabled
 -oom and mm patches
 -block patches
