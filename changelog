@@ -1,6 +1,7 @@
 v14: xx.xx.14
 -faux123 gamma control
 	thx to @oubeichen
+-modified flash script to remove mpdecisioncalls
 
 v13: 04.08.14
 -row scheduler enabled
