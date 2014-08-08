@@ -81,7 +81,7 @@ int cpuidle_play_dead(void)
 	struct cpuidle_device *dev = __this_cpu_read(cpuidle_devices);
 	struct cpuidle_driver *drv = cpuidle_get_driver();
 	int i, dead_state = -1;
-	int power_usage = INT_MAX;
+	int power_usage = -1;
 
 	if (!drv)
 		return -ENODEV;
@@ -276,6 +276,7 @@ static void poll_idle_init(struct cpuidle_driver *drv)
 	state->power_usage = -1;
 	state->flags = 0;
 	state->enter = poll_idle;
+	state->disable = 0;
 }
 #else
 static void poll_idle_init(struct cpuidle_driver *drv) {}

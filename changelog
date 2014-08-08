@@ -1,9 +1,19 @@
-v13: xx.08.14
+v14: xx.xx.14
+-faux123 gamma control
+	thx to @oubeichen
+-modified flash script to remove mpdecisioncalls
+-kernel mode neon
+-linaro 4.9.1 a15-cortex optimized
+	http://forum.xda-developers.com/showthread.php?t=2098133
+
+v13: 04.08.14
 -row scheduler enabled
 -oom and mm patches
 -block patches
 -config update
 -tunables changed
+-enabled rcu
+-fastcharge
 
 v12.5: 02.08.14
 -fix reboot on usb plug
