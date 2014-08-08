@@ -290,6 +290,8 @@ __read_mostly int scheduler_running;
  */
 int sysctl_sched_rt_runtime = 950000;
 
+
+
 /*
  * __task_rq_lock - lock the rq @p resides on.
  */
@@ -1604,7 +1606,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 
 	smp_wmb();
 	raw_spin_lock_irqsave(&p->pi_lock, flags);
-	src_cpu = cpu = task_cpu(p);
+	src_cpu = task_cpu(p);
+	cpu = src_cpu;
 
 	if (!(p->state & state))
 		goto out;
@@ -1646,9 +1649,6 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 		p->sched_class->task_waking(p);
 
 	cpu = select_task_rq(p, SD_BALANCE_WAKE, wake_flags);
-
-	/* Refresh src_cpu as it could have changed since we last read it */
-	src_cpu = task_cpu(p);
 	if (src_cpu != cpu) {
 		wake_flags |= WF_MIGRATED;
 		set_task_cpu(p, cpu);
@@ -5183,7 +5183,7 @@ void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
 		p->sched_class->set_cpus_allowed(p, new_mask);
 
 	cpumask_copy(&p->cpus_allowed, new_mask);
-	p->nr_cpus_allowed = cpumask_weight(new_mask);
+	p->rt.nr_cpus_allowed = cpumask_weight(new_mask);
 }
 
 /*
