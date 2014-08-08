@@ -131,7 +131,6 @@ static struct input_handler boost_input_handler = {
 	.id_table       = boost_ids,
 };
 
-#pragma GCC diagnostic ignored "-Wunused-result"
 static int init(void)
 {
 	INIT_WORK(&touchboost_inputopen.inputopen_work, boost_input_open);

@@ -557,6 +557,7 @@ fail:
 	qdss_eps_disable(f);
 	return ret;
 }
+
 static int qdss_bind_config(struct usb_configuration *c, const char *name)
 {
 	struct f_qdss *qdss;
