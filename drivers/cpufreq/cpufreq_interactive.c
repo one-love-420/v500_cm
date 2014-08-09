@@ -36,6 +36,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/cpufreq_interactive.h>
 
+#define ENABLE 0
+
 static int active_count;
 
 struct cpufreq_interactive_cpuinfo {
@@ -220,6 +222,7 @@ static unsigned int freq_to_above_hispeed_delay(unsigned int freq)
 	return ret;
 }
 
+#if ENABLE
 static unsigned int freq_to_targetload(unsigned int freq)
 {
 	int i;
@@ -326,6 +329,7 @@ static unsigned int choose_freq(
 
 	return freq;
 }
+#endif
 
 static unsigned int calc_freq(struct cpufreq_interactive_cpuinfo *pcpu, 
 	unsigned int load)
