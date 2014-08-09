@@ -220,7 +220,6 @@ static unsigned int freq_to_above_hispeed_delay(unsigned int freq)
 	return ret;
 }
 
-#if 0
 static unsigned int freq_to_targetload(unsigned int freq)
 {
 	int i;
@@ -327,14 +326,10 @@ static unsigned int choose_freq(
 
 	return freq;
 }
-#endif
 
 static unsigned int calc_freq(struct cpufreq_interactive_cpuinfo *pcpu, 
 	unsigned int load)
 {
-	/* doesnt matter if pcpu->policy->cpuinfo.min_freq or
-	 * pcpu->policy->min both have same values
-	 */
 	unsigned int max = pcpu->policy->max;
 	unsigned int min = pcpu->policy->min;
 
@@ -414,7 +409,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 		else
 		{
 			new_freq = calc_freq(pcpu, cpu_load);
-
 			if (new_freq < hispeed_freq)
 				new_freq = hispeed_freq;
 		}
@@ -422,9 +416,9 @@ static void cpufreq_interactive_timer(unsigned long data)
 	else
 	{
 		new_freq = calc_freq(pcpu, cpu_load);
-		if (new_freq > hispeed_freq && 
-				pcpu->target_freq < hispeed_freq)
-			new_freq = hispeed_freq;
+		if (new_freq > hispeed_freq &&
+					new_freq < pcpu->target_freq)
+				new_freq = hispeed_freq;
 
 		if (sync_freq && new_freq < sync_freq) {
 
