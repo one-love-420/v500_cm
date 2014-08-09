@@ -44,7 +44,7 @@
 
 struct cpu_stats
 {
-    unsigned int online_cpus;
+	unsigned int online_cpus;
 	unsigned int counter;
 	u64 timestamp;
 } stats = {

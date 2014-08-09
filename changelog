@@ -1,4 +1,9 @@
-v14: xx.xx.14
+v15: xx.08.14
+-upstream patches
+-interactive fix
+-atmel debug disabled
+
+v14: 08.08.14
 -faux123 gamma control
 	thx to @oubeichen
 -modified flash script to remove mpdecisioncalls
