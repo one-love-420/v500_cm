@@ -290,6 +290,8 @@ __read_mostly int scheduler_running;
  */
 int sysctl_sched_rt_runtime = 950000;
 
+
+
 /*
  * __task_rq_lock - lock the rq @p resides on.
  */
@@ -1604,7 +1606,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 
 	smp_wmb();
 	raw_spin_lock_irqsave(&p->pi_lock, flags);
-	src_cpu = cpu = task_cpu(p);
+	src_cpu = task_cpu(p);
+	cpu = src_cpu;
 
 	if (!(p->state & state))
 		goto out;
@@ -1646,9 +1649,6 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 		p->sched_class->task_waking(p);
 
 	cpu = select_task_rq(p, SD_BALANCE_WAKE, wake_flags);
-
-	/* Refresh src_cpu as it could have changed since we last read it */
-	src_cpu = task_cpu(p);
 	if (src_cpu != cpu) {
 		wake_flags |= WF_MIGRATED;
 		set_task_cpu(p, cpu);
@@ -1679,10 +1679,8 @@ static void try_to_wake_up_local(struct task_struct *p)
 {
 	struct rq *rq = task_rq(p);
 
-	if (WARN_ON(rq != this_rq()) ||
-	    WARN_ON(p == current))
-		return;
-
+	BUG_ON(rq != this_rq());
+	BUG_ON(p == current);
 	lockdep_assert_held(&rq->lock);
 
 	if (!raw_spin_trylock(&p->pi_lock)) {
@@ -2189,6 +2187,7 @@ unsigned long this_cpu_load(void)
 	struct rq *this = this_rq();
 	return this->cpu_load[0];
 }
+
 
 /*
  * Global load-average calculations
@@ -2741,7 +2740,6 @@ void update_cpu_load_nohz(void)
 /*
  * Called from scheduler_tick()
  */
-
 static void update_cpu_load_active(struct rq *this_rq)
 {
 	/*
@@ -4152,8 +4150,6 @@ int can_nice(const struct task_struct *p, const int nice)
 SYSCALL_DEFINE1(nice, int, increment)
 {
 	long nice, retval;
-	if (!ccs_capable(CCS_SYS_NICE))
-		return -EPERM;
 
 	/*
 	 * Setpriority might change our priority at the same moment.
@@ -5638,7 +5634,6 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
 
 	case CPU_UP_PREPARE:
 		rq->calc_load_update = calc_load_update;
-		rq->next_balance = jiffies;
 		break;
 
 	case CPU_ONLINE:
@@ -6093,7 +6088,6 @@ cpu_attach_domain(struct sched_domain *sd, struct root_domain *rd, int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
 	struct sched_domain *tmp;
-	unsigned long next_balance = rq->next_balance;
 
 	/* Remove the sched domains which do not contribute to scheduling. */
 	for (tmp = sd; tmp; ) {
@@ -6117,17 +6111,6 @@ cpu_attach_domain(struct sched_domain *sd, struct root_domain *rd, int cpu)
 		if (sd)
 			sd->child = NULL;
 	}
-
-	for (tmp = sd; tmp; ) {
-		unsigned long interval;
-
-		interval = msecs_to_jiffies(tmp->balance_interval);
-		if (time_after(next_balance, tmp->last_balance + interval))
-			next_balance = tmp->last_balance + interval;
-
-		tmp = tmp->parent;
-	}
-	rq->next_balance = next_balance;
 
 	sched_domain_debug(sd, cpu);
 
@@ -6966,11 +6949,13 @@ match2:
 #if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
 static void reinit_sched_domains(void)
 {
+	get_online_cpus();
 
 	/* Destroy domains first to force the rebuild */
 	partition_sched_domains(0, NULL, NULL);
 
 	rebuild_sched_domains();
+	put_online_cpus();
 }
 
 static ssize_t sched_power_savings_store(const char *buf, size_t count, int smt)
@@ -7135,6 +7120,9 @@ void __init sched_init_smp(void)
 
 	hotcpu_notifier(cpuset_cpu_active, CPU_PRI_CPUSET_ACTIVE);
 	hotcpu_notifier(cpuset_cpu_inactive, CPU_PRI_CPUSET_INACTIVE);
+
+	/* RT runtime code needs to handle some hotplug events */
+	hotcpu_notifier(update_runtime, 0);
 
 	init_hrtick();
 
