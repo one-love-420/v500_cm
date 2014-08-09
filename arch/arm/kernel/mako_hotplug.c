@@ -44,7 +44,7 @@
 
 struct cpu_stats
 {
-	unsigned int online_cpus;
+    unsigned int online_cpus;
 	unsigned int counter;
 	u64 timestamp;
 } stats = {
@@ -155,7 +155,7 @@ static void cpu_revive(unsigned int load)
 
 online_all:
 	cpus_online_work();
-	stats.timestamp = ktime_to_us(ktime_get());	
+	stats.timestamp = ktime_to_us(ktime_get());
 	stats.online_cpus = num_online_cpus();
 }
 
@@ -168,7 +168,7 @@ static void cpu_smash(void)
 	{
 		return;
 	}
-    
+
 	/*
 	 * offline the cpu only if its freq is lower than
 	 * CPUFREQ_UNPLUG_LIMIT. Else update the timestamp to now and
@@ -188,12 +188,12 @@ static void cpu_smash(void)
 	{
 		extra_time = t->min_time_cpu_online * MIN_CPU_UP_US;
 	}
-    
+
 	if (ktime_to_us(ktime_get()) < stats.timestamp + extra_time)
 	{
 		return;
 	}
-    
+
 	cpus_offline_work();
 
 	stats.online_cpus = num_online_cpus();
@@ -206,9 +206,9 @@ static void cpu_smash(void)
 
 static void __ref decide_hotplug_func(struct work_struct *work)
 {
-    struct hotplug_tunables *t = &tunables;
+	struct hotplug_tunables *t = &tunables;
 	unsigned int cur_load = 0;
-    unsigned int cpu;
+	unsigned int cpu;
 
 	/*
 	 * reschedule early when the system has woken up from the FREEZER but the
@@ -239,12 +239,12 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 	{
 		cur_load += cpufreq_quick_get_util(cpu);
 	}
-    
+
 	if (cur_load >= (t->load_threshold * 2))
 	{
 		if (stats.counter < t->max_load_counter)
 			++stats.counter;
-		
+
 		cpu_revive(cur_load);
 	}
 	else
