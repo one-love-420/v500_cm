@@ -35,24 +35,24 @@ static struct thermal_info {
 	bool throttling;
 	bool pending_change;
 } info = {
-	.cpuinfo_max_freq = 1728000,
-	.limited_max_freq = 1728000,
-	.safe_diff = 5,
-	.throttling = false,
-	.pending_change = false,
+	.cpuinfo_max_freq	= 1728000,
+	.limited_max_freq	= 1728000,
+	.safe_diff		= 5,
+	.throttling		= false,
+	.pending_change 	= false,
 };
 
 enum thermal_freqs {
-	FREQ_HELL	= 702000,
-	FREQ_VERY_HOT	= 1026000,
-	FREQ_HOT	= 1242000,
-	FREQ_WARM	= 1458000,
+	FREQ_HELL		= 702000,
+	FREQ_VERY_HOT		= 1026000,
+	FREQ_HOT		= 1242000,
+	FREQ_WARM		= 1458000,
 };
 
 enum threshold_levels {
-	LEVEL_HELL	= 12,
-	LEVEL_VERY_HOT	= 9,
-	LEVEL_HOT	= 5,
+	LEVEL_HELL		= 12,
+	LEVEL_VERY_HOT		= 9,
+	LEVEL_HOT		= 5,
 };
 
 static struct msm_thermal_data msm_thermal_info;
