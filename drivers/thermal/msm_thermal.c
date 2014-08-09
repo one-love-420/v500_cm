@@ -35,8 +35,8 @@ static struct thermal_info {
 	bool throttling;
 	bool pending_change;
 } info = {
-	.cpuinfo_max_freq = LONG_MAX,
-	.limited_max_freq = LONG_MAX,
+	.cpuinfo_max_freq = 1728000,
+	.limited_max_freq = 1728000,
 	.safe_diff = 5,
 	.throttling = false,
 	.pending_change = false,
